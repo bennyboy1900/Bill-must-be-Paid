@@ -263,17 +263,23 @@ const Font = (() => {
   function wrap(text, maxW, scale = 1, bold = false) {
     const out = [];
     for (const para of String(text).split('\n')) {
-      const words = para.split(' ');
+      // words that don't fit on a line are split after their hyphens ("Schweine-|Schlussverkauf")
+      const words = [];
+      for (const w of para.split(' ')) {
+        if (measure(w, scale, bold) <= maxW || !w.includes('-')) { words.push(w); continue; }
+        const parts = w.split('-');
+        parts.forEach((pt, i) => words.push(i < parts.length - 1 ? pt + '-\u0000' : pt));
+      }
       let line = '';
       // keep color markup across wrapped lines
       for (const w of words) {
-        const test = line ? line + ' ' + w : w;
-        if (measure(test, scale, bold) > maxW && line) {
-          out.push(line);
+        const test = line ? (line.endsWith('\u0000') ? line.slice(0, -1) + w : line + ' ' + w) : w;
+        if (measure(test.replace('\u0000', ''), scale, bold) > maxW && line) {
+          out.push(line.replace('\u0000', ''));
           line = w;
         } else line = test;
       }
-      out.push(line);
+      out.push(line.replace('\u0000', ''));
     }
     // carry color state across lines
     let open = null;
@@ -286,6 +292,14 @@ const Font = (() => {
     });
   }
 
+  // shorten text with "..." so it fits into maxW
+  function fit(text, maxW, scale = 1, bold = false) {
+    text = String(text);
+    if (measure(text, scale, bold) <= maxW) return text;
+    while (text.length > 1 && measure(text + '...', scale, bold) > maxW) text = text.slice(0, -1);
+    return text.trimEnd() + '...';
+  }
+
   function drawWrapped(ctx, text, x, y, maxW, opts = {}) {
     const sc = opts.scale || 1;
     const lh = (opts.lineHeight || 11) * sc;
@@ -294,5 +308,5 @@ const Font = (() => {
     return lines.length * lh;
   }
 
-  return { draw, drawScaled, measure, wrap, drawWrapped, LINE: 11 };
+  return { draw, drawScaled, measure, wrap, fit, drawWrapped, LINE: 11 };
 })();

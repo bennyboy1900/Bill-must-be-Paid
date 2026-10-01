@@ -1532,6 +1532,10 @@ class RunScene {
     ctx.save();
     ctx.translate(this.camX, this.camY);
     ctx.drawImage(Art.arena(), 0, 0);
+    // calm the desk clutter next to the box so the side HUD stays readable
+    ctx.fillStyle = 'rgba(12,6,4,0.55)';
+    ctx.fillRect(-10, 0, ARENA.x0 + 8, H + 10);
+    ctx.fillRect(ARENA.x1 - 2, 0, W - ARENA.x1 + 12, H + 10);
     // disco lights
     if (this.discoT > 0) {
       for (let i = 0; i < 5; i++) {
@@ -1731,7 +1735,7 @@ class RunScene {
       UI.panel(ctx, rx, ry, rw, 40, { fill: '#1a0e0c', border: '#c0392b', shadow: false });
       Font.draw(ctx, 'BOSS', rx + 6, ry + 4, { color: '#ff9a7a', bold: true, shadow: null });
       Font.draw(ctx, Math.ceil(left) + 's', rx + rw - 6, ry + 4, { align: 'right', color: left < 5 && Math.floor(t * 6) % 2 ? '#ff4a3a' : '#ffffff', shadow: null });
-      Font.draw(ctx, 'Vollzieher', rx + 6, ry + 15, { color: '#c8a090', shadow: null });
+      Font.draw(ctx, Font.fit('Trägt ' + money(bo.fixedValue || 0), rw - 12), rx + 6, ry + 15, { color: '#ffe9a8', shadow: null });
       UI.bar(ctx, rx + 6, ry + 30, rw - 12, 4, bo.hp / bo.maxHp, '#e8503e');
     }
 

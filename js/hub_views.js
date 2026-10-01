@@ -115,7 +115,7 @@ class SkillTreeView {
     ctx.save();
     ctx.beginPath(); ctx.rect(0, VIEW.y0, W, VIEW.y1 - VIEW.y0); ctx.clip();
     // ---- background: dot grid + glow ----
-    ctx.fillStyle = 'rgba(8,4,3,0.55)'; ctx.fillRect(0, VIEW.y0, W, VIEW.y1 - VIEW.y0);
+    ctx.fillStyle = 'rgba(8,4,3,0.72)'; ctx.fillRect(0, VIEW.y0, W, VIEW.y1 - VIEW.y0);
     const ox = ((-this.cam.x % 20) + 20) % 20, oy = ((-this.cam.y % 20) + 20) % 20;
     ctx.fillStyle = 'rgba(200,150,90,0.07)';
     for (let y = VIEW.y0 + oy; y < VIEW.y1; y += 20) for (let x = ox; x < W; x += 20) ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
@@ -128,7 +128,9 @@ class SkillTreeView {
       if (!SKILLS.some((s) => s.b === b && this.state(s) !== 'hidden')) continue;
       const c = this.centroids[b];
       const x = Math.round(c.x * this.G - this.cam.x + W / 2), y = Math.round(c.y * this.G - this.cam.y + (VIEW.y0 + VIEW.y1) / 2);
-      Font.draw(ctx, BRANCH[b].name.toUpperCase(), x, y - 4, { align: 'center', color: BRANCH[b].color, scale: 2, alpha: 0.07, shadow: null, bold: true });
+      // only name branches the player has actually reached, mysteries stay mysterious
+      const reached = SKILLS.some((s) => s.b === b && ['avail', 'owned', 'max'].includes(this.state(s)));
+      if (reached) Font.draw(ctx, BRANCH[b].name.toUpperCase(), x, y - 4, { align: 'center', color: BRANCH[b].color, scale: 2, alpha: 0.14, shadow: null, bold: true });
     }
     // ---- edges ----
     const flow = this.t * 0.8;
@@ -327,25 +329,27 @@ class ForgeView {
     Font.draw(ctx, 'VERZAUBERUNGEN', 16, 224, { color: '#c07af0', bold: true });
     Font.draw(ctx, 'gelten für alle Hämmer', 296, 224, { align: 'right', color: '#6a5a4e' });
     ENCHANTS.forEach((e, i) => {
-      const x = 14 + (i % 3) * 96, y = 238 + Math.floor(i / 3) * 43;
+      const x = 14 + (i % 2) * 145, y = 238 + Math.floor(i / 2) * 29;
+      const cw = 140, chh = 26;
       const l = P.enchant[e.id] || 0;
       const cost = enchantCost(l);
-      const r = UI.region('en_' + e.id, x, y, 92, 40);
+      const r = UI.region('en_' + e.id, x, y, cw, chh);
       const max = l >= e.max;
-      UI.panel(ctx, x, y - (r.hover ? 1 : 0), 92, 40, { fill: r.hover ? '#2a1e17' : '#1a120e', border: l ? e.color : '#3a2a20', shadow: false });
-      if (l) { ctx.globalAlpha = 0.25 + Math.sin(this.t * 4 + i) * 0.1; ctx.fillStyle = e.color; ctx.fillRect(x + 4, y + 4, 16, 16); ctx.globalAlpha = 1; }
-      ctx.drawImage(l ? Art.icon(e.icon) : Art.iconGray(e.icon), x + 6, y + 6 - (r.hover ? 1 : 0));
-      Font.draw(ctx, e.name, x + 24, y + 5, { color: l ? '#f3e6cf' : '#8a7a6a' });
-      for (let k = 0; k < e.max; k++) { ctx.fillStyle = k < l ? e.color : '#3a2a20'; ctx.fillRect(x + 24 + k * 7, y + 18, 5, 3); }
-      Font.draw(ctx, max ? 'MAX' : cost + '♦', x + 86, y + 27, { align: 'right', color: max ? '#ffd040' : P.gems >= cost ? '#ff9aa0' : '#7a5a5a', shadow: 'outline' });
+      const yo = r.hover ? 1 : 0;
+      UI.panel(ctx, x, y - yo, cw, chh, { fill: r.hover ? '#2a1e17' : '#1a120e', border: l ? e.color : '#3a2a20', shadow: false });
+      if (l) { ctx.globalAlpha = 0.25 + Math.sin(this.t * 4 + i) * 0.1; ctx.fillStyle = e.color; ctx.fillRect(x + 4, y + 5 - yo, 16, 16); ctx.globalAlpha = 1; }
+      ctx.drawImage(l ? Art.icon(e.icon) : Art.iconGray(e.icon), x + 6, y + 7 - yo);
+      Font.draw(ctx, Font.fit(e.name, cw - 58), x + 24, y + 5 - yo, { color: l ? '#f3e6cf' : '#a8927a' });
+      for (let k = 0; k < e.max; k++) { ctx.fillStyle = k < l ? e.color : '#3a2a20'; ctx.fillRect(x + 24 + k * 7, y + 17 - yo, 5, 3); }
+      Font.draw(ctx, max ? 'MAX' : cost + '♦', x + cw - 6, y + 9 - yo, { align: 'right', color: max ? '#ffd040' : P.gems >= cost ? '#ff9aa0' : '#7a5a5a', shadow: 'outline', bold: true });
       if (r.hover) UI.tooltip([{ t: e.name, c: e.color }, l ? 'Aktuell: ' + e.d(l) : 'Noch nicht gelernt', max ? { t: 'MAXIMAL', c: '#ffd040' } : { t: 'Nächste: ' + e.d(l + 1), c: '#9af08a' }, max ? '' : { t: 'Klicken: ' + cost + ' ♦', c: P.gems >= cost ? '#ff9aa0' : '#ff6a5a' }]);
       if (r.click) {
         if (!max && P.gems >= cost) {
           P.gems -= cost; P.enchant[e.id] = l + 1; invalidateStats(); saveGame();
           Sound.play('unlock');
-          for (let k = 0; k < 16; k++) this.hub.parts.push(new Spark(x + 14, y + 14, e.color, 150));
-          this.hub.fx.push(new Ring(x + 46, y + 20, 40, e.color, 0.4, 2));
-          this.hub.text(x + 46, y, e.name + ' ' + (l + 1), e.color, { big: true });
+          for (let k = 0; k < 16; k++) this.hub.parts.push(new Spark(x + 14, y + 13, e.color, 150));
+          this.hub.fx.push(new Ring(x + cw / 2, y + 13, 40, e.color, 0.4, 2));
+          this.hub.text(x + cw / 2, y, e.name + ' ' + (l + 1), e.color, { big: true });
         } else Sound.play('error');
       }
     });
