@@ -468,6 +468,93 @@ class ForgeView {
 }
 
 // ------------------------------------------------------------
+//  COIN CASE ART (static parts cached once)
+// ------------------------------------------------------------
+const COIN_BOX = { f: 10, div: 4, th: 59, step: 54, cx0: 36, cy: 37 };
+let _coinBox = null, _coinGlass = null;
+function brassPlate(ctx, x, y, w, h) {
+  ctx.fillStyle = '#4a2a0a'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+  ctx.fillStyle = '#c8913a'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#f0c868'; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y, 1, h);
+  ctx.fillStyle = '#8a5a24'; ctx.fillRect(x, y + h - 1, w, 1); ctx.fillRect(x + w - 1, y, 1, h);
+  ctx.fillStyle = '#6a4418'; ctx.fillRect(x + 2, y + 2, 1, 1); ctx.fillRect(x + w - 3, y + 2, 1, 1);
+}
+function coinBoxArt(w, h) {
+  if (_coinBox) return _coinBox;
+  const L = COIN_BOX;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  // drop shadow + wooden case with grain
+  g.fillStyle = '#1a0c06'; g.fillRect(0, 0, w, h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const n = Math.sin(y * 0.55 + Math.sin(x * 0.03 + y * 0.02) * 3 + vnoise(x * 0.05, y * 0.4, 3) * 2);
+    g.fillStyle = n > 0.75 ? '#4e2a14' : n < -0.6 ? '#7a4524' : '#663a1e';
+    g.fillRect(x, y, 1, 1);
+  }
+  g.fillStyle = '#9a6034'; g.fillRect(1, 1, w - 2, 1); g.fillRect(1, 1, 1, h - 2);
+  g.fillStyle = '#3a1e0e'; g.fillRect(1, h - 2, w - 2, 1); g.fillRect(w - 2, 1, 1, h - 2);
+  // inner bevel of the case
+  const ix = L.f, iy = L.f, iw = w - L.f * 2, ih = h - L.f * 2;
+  g.fillStyle = '#2a1408'; g.fillRect(ix - 2, iy - 2, iw + 4, ih + 4);
+  g.fillStyle = '#8a5230'; g.fillRect(ix - 2, iy + ih, iw + 4, 2); g.fillRect(ix + iw, iy - 2, 2, ih + 4);
+  // compartments
+  for (let t = 0; t < 4; t++) {
+    const ty = iy + t * (L.th + L.div), th = t === 3 ? ih - 3 * (L.th + L.div) : L.th;
+    // velvet with fibre noise
+    g.fillStyle = '#18203c'; g.fillRect(ix, ty, iw, th);
+    for (let i = 0; i < 260; i++) { g.fillStyle = i % 2 ? 'rgba(120,140,255,0.06)' : 'rgba(0,0,0,0.16)'; g.fillRect(ix + Math.floor(hash2(i, t + 7) * iw), ty + Math.floor(hash2(i, t + 17) * th), 1, 1); }
+    // inset shading: dark top/left, soft light bottom/right
+    g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(ix, ty, iw, 3); g.fillRect(ix, ty, 2, th);
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(ix, ty + 3, iw, 2);
+    g.fillStyle = 'rgba(140,160,255,0.08)'; g.fillRect(ix, ty + th - 1, iw, 1); g.fillRect(ix + iw - 1, ty, 1, th);
+    // coin wells
+    const wells = RARE_COINS.filter((rc) => rc.r === t + 1).length;
+    for (let i = 0; i < wells; i++) {
+      const cx = ix + L.cx0 + i * L.step, cy = ty + L.cy;
+      g.fillStyle = '#2c3866'; g.beginPath(); g.arc(cx, cy + 1, 16, 0, TAU); g.fill();
+      g.fillStyle = '#070a16'; g.beginPath(); g.arc(cx, cy, 15, 0, TAU); g.fill();
+      g.fillStyle = '#0e1428'; g.beginPath(); g.arc(cx, cy + 1, 13, 0, TAU); g.fill();
+      g.fillStyle = '#141b36'; g.beginPath(); g.arc(cx, cy + 2, 11, 0, TAU); g.fill();
+    }
+    // wooden divider below
+    if (t < 3) {
+      const dy = ty + th;
+      g.fillStyle = '#6a3c1e'; g.fillRect(ix, dy, iw, L.div);
+      g.fillStyle = '#9a6034'; g.fillRect(ix, dy, iw, 1);
+      g.fillStyle = '#3a1e0e'; g.fillRect(ix, dy + L.div - 1, iw, 1);
+    }
+  }
+  // brass corner brackets
+  const corner = (x, y, fx, fy) => {
+    for (let i = 0; i < 12; i++) for (let j = 0; j < 3; j++) {
+      g.fillStyle = j === 0 ? '#f0c868' : j === 2 ? '#8a5a24' : '#c8913a';
+      g.fillRect(x + fx * i, y + fy * j, 1, 1); g.fillRect(x + fx * j, y + fy * i, 1, 1);
+    }
+    g.fillStyle = '#4a2a0a'; g.fillRect(x + fx * 5, y + fy * 1, 1, 1); g.fillRect(x + fx * 1, y + fy * 5, 1, 1);
+  };
+  corner(1, 1, 1, 1); corner(w - 2, 1, -1, 1); corner(1, h - 2, 1, -1); corner(w - 2, h - 2, -1, -1);
+  // hinges on top, clasp at the front
+  for (const hx of [70, w - 90]) brassPlate(g, hx, 2, 20, 6);
+  brassPlate(g, w / 2 - 9, h - 8, 18, 7);
+  g.fillStyle = '#4a2a0a'; g.fillRect(w / 2 - 1, h - 6, 2, 3);
+  return (_coinBox = c);
+}
+function coinGlassArt(w, h) {
+  if (_coinGlass) return _coinGlass;
+  const L = COIN_BOX;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  const ix = L.f, iy = L.f, iw = w - L.f * 2, ih = h - L.f * 2;
+  g.save(); g.beginPath(); g.rect(ix, iy, iw, ih); g.clip();
+  // two diagonal reflections across the glass
+  for (const [x0, bw, a] of [[60, 34, 0.05], [110, 10, 0.07], [270, 22, 0.04]]) {
+    g.fillStyle = `rgba(220,235,255,${a})`;
+    g.beginPath(); g.moveTo(ix + x0, iy); g.lineTo(ix + x0 + bw, iy); g.lineTo(ix + x0 + bw - ih * 0.6, iy + ih); g.lineTo(ix + x0 - ih * 0.6, iy + ih); g.fill();
+  }
+  g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(ix, iy, iw, 1);
+  g.restore();
+  return (_coinGlass = c);
+}
+
+// ------------------------------------------------------------
 //  COLLECTION (coin album + pig dex)
 // ------------------------------------------------------------
 class CollectionView {
@@ -484,52 +571,58 @@ class CollectionView {
   }
 
   drawCoins(ctx, dt) {
-    // album page: navy velvet with gold frame
+    // collector's case: wooden box, velvet compartments per rarity, glass lid
     const ax = 8, ay = 58, aw = 414, ah = 268;
-    UI.panel(ctx, ax, ay, aw, ah, { fill: '#18203a', border: '#c8913a' });
-    for (let i = 0; i < 500; i++) { ctx.fillStyle = i % 2 ? 'rgba(120,140,255,0.05)' : 'rgba(0,0,0,0.12)'; ctx.fillRect(ax + 3 + hash2(i, 7) * (aw - 6), ay + 3 + hash2(i, 8) * (ah - 6), 1, 1); }
-    ctx.strokeStyle = 'rgba(200,145,58,0.35)'; ctx.strokeRect(ax + 6.5, ay + 6.5, aw - 13, ah - 13);
+    const L = COIN_BOX;
+    ctx.drawImage(coinBoxArt(aw, ah), ax, ay);
     let hovered = null;
-    let yy = ay + 12;
-    for (const r of [1, 2, 3, 4]) {
+    [1, 2, 3, 4].forEach((r, ti) => {
       const coins = RARE_COINS.filter((c) => c.r === r);
       const have = coins.filter((c) => P.collection[c.id]).length;
       const done = have === coins.length;
-      Font.draw(ctx, RARITY[r].name, ax + 14, yy, { color: RARITY[r].color, bold: true });
-      Font.draw(ctx, `${have}/${coins.length}`, ax + 14 + Font.measure(RARITY[r].name, 1, true) + 6, yy, { color: '#8a8aa8' });
-      Font.draw(ctx, 'Set: ' + SET_BONUS[r].d, ax + aw - 14, yy, { align: 'right', color: done ? '#9af08a' : '#5a5a78' });
-      yy += 13;
+      const tx = ax + L.f, ty = ay + L.f + ti * (L.th + L.div), tw = aw - L.f * 2;
+      if (done) { ctx.fillStyle = 'rgba(154,240,138,0.07)'; ctx.fillRect(tx + 2, ty + 2, tw - 4, L.th - 4); }
+      // brass name plate
+      const name = RARITY[r].name.toUpperCase();
+      const pw = Font.measure(name, 1, true) + 44;
+      brassPlate(ctx, tx + 6, ty + 4, pw, 12);
+      ctx.fillStyle = '#1a0e06'; ctx.fillRect(tx + 11, ty + 7, 6, 6);
+      ctx.fillStyle = RARITY[r].color; ctx.fillRect(tx + 12, ty + 8, 4, 4);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(tx + 12, ty + 8, 1, 1);
+      Font.draw(ctx, name, tx + 21, ty + 7, { color: '#3a2008', bold: true, shadow: null });
+      Font.draw(ctx, `${have}/${coins.length}`, tx + pw, ty + 7, { align: 'right', color: '#5a3a14', shadow: null });
+      Font.draw(ctx, (done ? '✓ ' : '') + 'Set: ' + SET_BONUS[r].d, tx + tw - 8, ty + 7, { align: 'right', color: done ? '#9af08a' : '#6a7298', shadow: null });
       coins.forEach((c, i) => {
-        const cx = ax + 34 + i * 54, cy = yy + 18;
+        const cx = tx + L.cx0 + i * L.step, cy = ty + L.cy;
         const owned = !!P.collection[c.id];
         const reg = UI.region('coin_' + c.id, cx - 20, cy - 20, 40, 40);
         if (reg.hover) hovered = c;
-        // recessed slot
-        ctx.fillStyle = '#0c1020'; ctx.beginPath(); ctx.arc(cx, cy + 1, 15, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#222c4c'; ctx.beginPath(); ctx.arc(cx, cy, 14, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#10162a'; ctx.beginPath(); ctx.arc(cx, cy + 1, 12, 0, TAU); ctx.fill();
+        if (reg.hover || this.sel === c) {
+          ctx.strokeStyle = reg.hover ? '#ffe0a0' : '#c8913a'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(cx, cy + 1, 17.5, 0, TAU); ctx.stroke();
+        }
         if (owned) {
           const spr = Art.rareCoin(c, 20);
-          // slow 3D spin, faster when hovered
+          // slow 3D spin in its well, faster when hovered
           const spd = reg.hover ? 5 : 1.2;
           const k = Math.cos(this.t * spd + i * 0.7 + r);
           const sx = Math.max(0.12, Math.abs(k));
-          const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
+          const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, 18);
           glow.addColorStop(0, RARITY[r].color + '55'); glow.addColorStop(1, 'rgba(0,0,0,0)');
-          ctx.fillStyle = glow; ctx.fillRect(cx - 20, cy - 20, 40, 40);
+          ctx.fillStyle = glow; ctx.fillRect(cx - 18, cy - 18, 36, 36);
           ctx.save(); ctx.translate(cx, cy - (reg.hover ? 2 : 0)); ctx.scale(sx, 1);
           ctx.drawImage(k < 0 ? Art.tint('rcb' + c.id, spr, 'gold') : spr, -spr.width / 2, -spr.height / 2);
           ctx.restore();
-          if (P.collection[c.id] > 1) Font.draw(ctx, 'x' + P.collection[c.id], cx + 16, cy + 8, { align: 'right', color: '#c8c8e8', shadow: 'outline' });
+          if (P.collection[c.id] > 1) Font.draw(ctx, 'x' + P.collection[c.id], cx + 18, cy + 9, { align: 'right', color: '#e8e8ff', shadow: 'outline' });
           if (chance(dt * 0.6)) this.hub.parts.push(new Sparkle(cx + rand(-10, 10), cy + rand(-10, 10)));
         } else {
-          Font.draw(ctx, '?', cx, cy - 4, { align: 'center', color: '#3a4268', shadow: null, bold: true });
+          Font.draw(ctx, '?', cx, cy - 3, { align: 'center', color: '#2c3458', shadow: null, bold: true });
         }
         if (reg.click) { this.sel = c; Sound.play('click'); }
       });
-      yy += 42;
-      if (done) { ctx.fillStyle = 'rgba(154,240,138,0.08)'; ctx.fillRect(ax + 8, yy - 56, aw - 16, 54); }
-    }
+    });
+    // glass lid on top of everything
+    ctx.drawImage(coinGlassArt(aw, ah), ax, ay);
     const c = hovered || this.sel;
     // detail panel
     const dx = 430, dy = 58, dw = 202, dh = 268;
@@ -545,14 +638,27 @@ class CollectionView {
     const owned = !!P.collection[c.id];
     const big = Art.rareCoin(c, 44);
     const k = Math.cos(this.t * 1.6);
-    const glow = ctx.createRadialGradient(dx + dw / 2, dy + 64, 4, dx + dw / 2, dy + 64, 50);
+    // little velvet showcase in a wooden frame
+    const sx = dx + 30, sy = dy + 30, sw = dw - 60, sh = 66;
+    ctx.fillStyle = '#2a1408'; ctx.fillRect(sx - 4, sy - 4, sw + 8, sh + 8);
+    ctx.fillStyle = '#6a3c1e'; ctx.fillRect(sx - 3, sy - 3, sw + 6, sh + 6);
+    ctx.fillStyle = '#9a6034'; ctx.fillRect(sx - 3, sy - 3, sw + 6, 1);
+    ctx.fillStyle = '#18203c'; ctx.fillRect(sx, sy, sw, sh);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(sx, sy, sw, 3);
+    const glow = ctx.createRadialGradient(dx + dw / 2, sy + sh / 2, 4, dx + dw / 2, sy + sh / 2, 46);
     glow.addColorStop(0, owned ? RARITY[c.r].color + '66' : 'rgba(60,60,80,0.3)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow; ctx.fillRect(dx, dy + 14, dw, 100);
-    ctx.save(); ctx.translate(dx + dw / 2, dy + 64); ctx.scale(Math.max(0.08, Math.abs(k)), 1);
+    ctx.fillStyle = glow; ctx.fillRect(sx, sy, sw, sh);
+    ctx.save(); ctx.translate(dx + dw / 2, sy + sh / 2); ctx.scale(Math.max(0.08, Math.abs(k)), 1);
     ctx.drawImage(owned ? (k < 0 ? Art.tint('rcbb' + c.id, big, 'gold') : big) : Art.tint('rcd' + c.id, big, 'dark'), -big.width / 2, -big.height / 2);
     ctx.restore();
-    Font.draw(ctx, owned ? c.name : '???', dx + dw / 2, dy + 100, { align: 'center', color: '#ffffff', bold: true });
-    Font.draw(ctx, RARITY[c.r].name, dx + dw / 2, dy + 112, { align: 'center', color: RARITY[c.r].color });
+    ctx.fillStyle = 'rgba(220,235,255,0.06)';
+    ctx.beginPath(); ctx.moveTo(sx + 14, sy); ctx.lineTo(sx + 34, sy); ctx.lineTo(sx + 4, sy + sh); ctx.lineTo(sx - 16 < sx ? sx : sx - 16, sy + sh); ctx.fill();
+    // brass name plate
+    const nm = owned ? c.name : '???';
+    const pw = Math.min(dw - 20, Font.measure(nm, 1, true) + 20);
+    brassPlate(ctx, dx + dw / 2 - pw / 2, dy + 98, pw, 13);
+    Font.draw(ctx, nm, dx + dw / 2, dy + 101, { align: 'center', color: '#3a2008', bold: true, shadow: null });
+    Font.draw(ctx, RARITY[c.r].name, dx + dw / 2, dy + 116, { align: 'center', color: RARITY[c.r].color });
     if (owned) {
       Font.drawWrapped(ctx, '"' + c.desc + '"', dx + dw / 2, dy + 130, dw - 20, { color: '#a8927a', align: 'center' });
       UI.panel(ctx, dx + 10, dy + 176, dw - 20, 24, { fill: '#1a2a1a', border: '#3a6a3a', shadow: false });
