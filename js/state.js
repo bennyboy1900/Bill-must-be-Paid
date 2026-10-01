@@ -14,6 +14,7 @@ function newCycleState(P) {
     skills: {},
     perks: {},
     pendingPerks: null,
+    rerolls: 0,
     runs: 0,
     earnedCycle: 0,
     event: null,
@@ -33,10 +34,12 @@ function newSave() {
     enchant: {},
     hammer: 'wood',
     rings: [], ringsEq: [], bracelets: [], braceEq: [],
+    gemSkills: {},
+    perkUnlocks: {},
     collection: {},
     dex: {},
     achievements: {},
-    stats: { pigs: 0, crits: 0, jackpots: 0, bestCombo: 0, bestRun: 0, runs: 0, gemsTotal: 0, moneyTotal: 0, escaped: 0, playTime: 0, rareFound: 0 },
+    stats: { pigs: 0, crits: 0, jackpots: 0, bestCombo: 0, bestRun: 0, runs: 0, gemsTotal: 0, moneyTotal: 0, escaped: 0, playTime: 0, rareFound: 0, earlyPaid: 0, earlyGems: 0 },
     settings: { sfx: 0.7, music: 0.45, shake: true, numbers: true },
     seenIntro: false,
     tutorial: { swing: false, bill: false, tree: false },
@@ -60,6 +63,8 @@ function loadGame() {
       P.settings = Object.assign(fresh.settings, data.settings || {});
       P.tutorial = Object.assign(fresh.tutorial, data.tutorial || {});
       P.enchant = data.enchant || {};
+      P.gemSkills = data.gemSkills || {};
+      P.perkUnlocks = data.perkUnlocks || {};
       if (!P.C) P.C = newCycleState(P);
       return true;
     }
@@ -98,6 +103,9 @@ function baseStats() {
     coffee: 0, coffeeAmt: 1, coffeeSpeed: 0, energy: false, coffeeAddict: 0,
     secondWind: 0, adrenaline: 0,
     perkChoices: 3, skillDiscount: 0, dueBonus: 0, billRefund: 0, startMoney: 0,
+    earlyPay: 0, ppBonus: 0, eventChance: 0, eventCoin: 0, freeRerolls: 0, perkLuck: 0,
+    buffDur: 0, bombDmg: 0, bombGold: 0, bombBurn: false, lotteryMult: 1, pigletValue: 0,
+    bossBonus: 0, bossTime: 0, xray: false, partyBoost: 1,
   };
 }
 
@@ -124,6 +132,8 @@ function computeStats(PP, prestigeOnly = false) {
     if (all.every((c) => PP.collection[c.id])) SET_BONUS[r].a(s);
   }
   for (const e of ENCHANTS) { const l = (PP.enchant || {})[e.id] || 0; if (l) e.a(s, l); }
+  // the diamond tree is permanent, so it also counts for the cycle start (start money, deadlines)
+  for (const id in PP.gemSkills || {}) { const sk = GEM_SKILL_BY_ID[id]; const l = PP.gemSkills[id]; if (sk && l > 0) sk.a(s, l); }
   {
     const st = hammerStars(PP.hammerLvl[PP.hammer] || 0);
     for (let i = 0; i < st; i++) HAMMER_STARS[i].a(s);
@@ -182,7 +192,12 @@ function computeStats(PP, prestigeOnly = false) {
     interest: s.interest, endBonus: s.endBonus, comboCoin: s.comboCoin, comboWindow: s.comboWindow + (h.combo || 0),
     coffee: s.coffee, coffeeAmt: s.coffeeAmt, coffeeSpeed: s.coffeeSpeed, energy: s.energy, coffeeAddict: s.coffeeAddict,
     secondWind: s.secondWind, adrenaline: s.adrenaline,
-    perkChoices: s.perkChoices, skillDiscount: Math.min(0.75, s.skillDiscount), dueBonus: s.dueBonus, billRefund: Math.min(0.5, s.billRefund), startMoney: s.startMoney,
+    perkChoices: Math.min(6, s.perkChoices), skillDiscount: Math.min(0.75, s.skillDiscount), dueBonus: s.dueBonus, billRefund: Math.min(0.5, s.billRefund), startMoney: s.startMoney,
+    earlyPay: s.earlyPay, ppBonus: s.ppBonus, eventChance: s.eventChance, eventCoin: s.eventCoin, freeRerolls: s.freeRerolls, perkLuck: s.perkLuck,
+    buffDur: s.buffDur, bombDmg: s.bombDmg, bombGold: s.bombGold, bombBurn: s.bombBurn, lotteryMult: s.lotteryMult, pigletValue: s.pigletValue,
+    bossBonus: s.bossBonus, bossTime: s.bossTime, xray: s.xray, partyBoost: s.partyBoost,
+    // set by daily events only
+    pigHp: 1, pigValue: 1, pigSpeed: 1, onlyPigs: null, calm: false,
     cycleBonus,
   };
   return F;
@@ -201,6 +216,16 @@ function invalidateStats() { _statsCache = null; }
 function skillPrice(sk) {
   const st = stats();
   return Math.max(1, Math.round(skillCost(sk, skillLevel(sk.id)) * (1 - st.skillDiscount)));
+}
+function gemSkillLevel(id) { return P.gemSkills[id] || 0; }
+function gemSkillPrice(sk) { return skillCost(sk, gemSkillLevel(sk.id)); }
+
+// rolled after each run for the next day
+function rollEvent() {
+  const S = stats();
+  if (P.C.day < 2 || !chance(Math.min(0.9, 0.5 + S.eventChance))) return null;
+  const pool = EVENTS.filter((e) => e.id !== P.C.event && (!e.req || e.req(P)));
+  return pick(pool).id;
 }
 
 function addPP(n) { P.pp += n; P.ppTotal += n; }

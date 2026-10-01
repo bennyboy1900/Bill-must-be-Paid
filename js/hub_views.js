@@ -6,9 +6,26 @@ const VIEW = { x0: 0, y0: 31, x1: W, y1: H - 28 };
 // ------------------------------------------------------------
 //  SKILL TREE
 // ------------------------------------------------------------
+// the same view drives both trees: money (lost on bankruptcy) and diamonds (permanent)
+const TREE_CFG = {
+  money: {
+    nodes: SKILLS, byId: SKILL_BY_ID, branch: BRANCH,
+    level: (id) => skillLevel(id), setLevel: (id, l) => { P.C.skills[id] = l; },
+    price: (sk) => skillPrice(sk), wallet: () => P.C.money, spend: (n) => { P.C.money -= n; },
+    fmt: (n) => money(n),
+  },
+  gems: {
+    nodes: GEM_SKILLS, byId: GEM_SKILL_BY_ID, branch: GBRANCH,
+    level: (id) => gemSkillLevel(id), setLevel: (id, l) => { P.gemSkills[id] = l; },
+    price: (sk) => gemSkillPrice(sk), wallet: () => P.gems, spend: (n) => { P.gems -= n; },
+    fmt: (n) => fmt(n) + ' ♦',
+  },
+};
+
 class SkillTreeView {
-  constructor(hub) {
+  constructor(hub, cfg = TREE_CFG.money) {
     this.hub = hub;
+    this.T = cfg;
     this.G = 40;
     this.cam = { x: 0, y: 0 };
     this.vel = { x: 0, y: 0 };
@@ -18,23 +35,24 @@ class SkillTreeView {
     this.shakeN = {};
     this.t = 0;
     this.hover = null;
-    this.known = new Set(SKILLS.filter((s) => this.state(s) !== 'hidden').map((s) => s.id));
     this.centroids = {};
-    for (const b in BRANCH) {
-      const ns = SKILLS.filter((s) => s.b === b);
-      if (!ns.length || b === 'root') continue;
+    for (const b in cfg.branch) {
+      const ns = cfg.nodes.filter((s) => s.b === b);
+      if (!ns.length || ns.some((s) => !s.req.length)) continue;
       const cx = ns.reduce((a, s) => a + s.x, 0) / ns.length, cy = ns.reduce((a, s) => a + s.y, 0) / ns.length;
       this.centroids[b] = { x: cx, y: cy };
     }
   }
+  unlocked(sk) { return sk.req.length === 0 || sk.req.some((r) => this.T.level(r) > 0); }
   state(sk) {
-    const l = skillLevel(sk.id);
+    const l = this.T.level(sk.id);
     if (l >= sk.max) return 'max';
     if (l > 0) return 'owned';
-    if (skillUnlocked(sk)) return 'avail';
-    if (sk.req.some((r) => skillUnlocked(SKILL_BY_ID[r]))) return 'mystery';
+    if (this.unlocked(sk)) return 'avail';
+    if (sk.req.some((r) => this.unlocked(this.T.byId[r]))) return 'mystery';
     return 'hidden';
   }
+  anyAffordable() { return this.T.nodes.some((s) => this.unlocked(s) && this.T.level(s.id) < s.max && this.T.price(s) <= this.T.wallet()); }
   pos(sk) { return { x: Math.round(sk.x * this.G - this.cam.x + W / 2), y: Math.round(sk.y * this.G - this.cam.y + (VIEW.y0 + VIEW.y1) / 2) }; }
   spent() {
     let s = 0;
@@ -50,37 +68,41 @@ class SkillTreeView {
     Sound.play('back');
   }
   buy(sk) {
-    const price = skillPrice(sk);
-    const l = skillLevel(sk.id);
+    const T = this.T;
+    const price = T.price(sk);
+    const l = T.level(sk.id);
     if (l >= sk.max) return;
-    if (P.C.money < price) { Sound.play('error'); this.shakeN[sk.id] = 0.3; return; }
-    const before = new Set(SKILLS.filter((s) => this.state(s) === 'avail' || this.state(s) === 'mystery').map((s) => s.id));
-    P.C.money -= price;
-    P.C.skills[sk.id] = l + 1;
+    if (T.wallet() < price) { Sound.play('error'); this.shakeN[sk.id] = 0.3; return; }
+    const before = new Set(T.nodes.filter((s) => this.state(s) === 'avail' || this.state(s) === 'mystery').map((s) => s.id));
+    T.spend(price);
+    T.setLevel(sk.id, l + 1);
     invalidateStats();
     saveGame();
     this.pop[sk.id] = 0;
     const p = this.pos(sk);
-    const col = BRANCH[sk.b].color;
+    const col = T.branch[sk.b].color;
     Sound.play(sk.key || sk.unlockPig ? 'unlock' : 'buy');
     for (let i = 0; i < (sk.key ? 30 : 16); i++) this.hub.parts.push(new Spark(p.x, p.y, i % 2 ? col : '#ffffff', sk.key ? 200 : 130));
     for (let i = 0; i < 6; i++) this.hub.parts.push(new Sparkle(p.x + rand(-14, 14), p.y + rand(-14, 14)));
     this.hub.fx.push(new Ring(p.x, p.y + 6, sk.key ? 50 : 30, col, 0.4, 2));
-    this.hub.text(p.x, p.y - 22, '-' + money(price), '#ff9a7a', { life: 0.9 });
+    this.hub.text(p.x, p.y - 22, '-' + T.fmt(price), '#ff9a7a', { life: 0.9 });
     if (sk.unlockPig) {
       UI.toast({ title: 'Neues Schwein freigeschaltet!', text: PIGS[sk.unlockPig].name, icon: Art.pig(sk.unlockPig, 0).canvas, color: '#ff9ac0' });
     } else if (sk.key && l === 0) {
       UI.toast({ title: sk.name, text: 'Schlüssel-Fähigkeit erlernt!', icon: Art.icon(sk.icon), color: col });
     }
-    for (const s of SKILLS) {
+    for (const s of T.nodes) {
       const st = this.state(s);
       if ((st === 'avail' || st === 'mystery') && !before.has(s.id)) this.reveal[s.id] = 0;
     }
+    checkAchievements().forEach((a) => UI.toast({ title: 'Erfolg: ' + a.name, text: rewardText(a.reward), icon: Art.icon(a.icon), color: '#ffd040' }));
   }
 
   draw(ctx, dt) {
     this.t += dt;
-    const inView = Input.y > VIEW.y0 && Input.y < VIEW.y1;
+    const T = this.T;
+    // the tree switch in the top left corner is not part of the canvas
+    const inView = Input.y > VIEW.y0 && Input.y < VIEW.y1 && !(Input.x < 214 && Input.y < VIEW.y0 + 26);
     // ---- pan input (drag with inertia, wheel, keys) ----
     if (UI.enabled) {
       if (Input.pressed && inView) this.drag = { sx: Input.x, sy: Input.y, cx: this.cam.x, cy: this.cam.y, moved: false, lx: Input.x, ly: Input.y };
@@ -105,7 +127,7 @@ class SkillTreeView {
       const d = Math.exp(-6 * dt); this.vel.x *= d; this.vel.y *= d;
     }
     // clamp to known area
-    const vis = SKILLS.filter((s) => this.state(s) !== 'hidden');
+    const vis = T.nodes.filter((s) => this.state(s) !== 'hidden');
     const minX = Math.min(...vis.map((s) => s.x)) * this.G - 120, maxX = Math.max(...vis.map((s) => s.x)) * this.G + 120;
     const minY = Math.min(...vis.map((s) => s.y)) * this.G - 60, maxY = Math.max(...vis.map((s) => s.y)) * this.G + 60;
     const hw = W / 2 - 60, hh = (VIEW.y1 - VIEW.y0) / 2 - 40;
@@ -119,27 +141,27 @@ class SkillTreeView {
     const ox = ((-this.cam.x % 20) + 20) % 20, oy = ((-this.cam.y % 20) + 20) % 20;
     ctx.fillStyle = 'rgba(200,150,90,0.07)';
     for (let y = VIEW.y0 + oy; y < VIEW.y1; y += 20) for (let x = ox; x < W; x += 20) ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
-    const root = this.pos(SKILLS[0]);
+    const root = this.pos(T.nodes[0]);
     const g = ctx.createRadialGradient(root.x, root.y, 5, root.x, root.y, 220);
     g.addColorStop(0, 'rgba(255,190,90,0.10)'); g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = g; ctx.fillRect(0, VIEW.y0, W, VIEW.y1 - VIEW.y0);
     // branch names
     for (const b in this.centroids) {
-      if (!SKILLS.some((s) => s.b === b && this.state(s) !== 'hidden')) continue;
+      if (!T.nodes.some((s) => s.b === b && this.state(s) !== 'hidden')) continue;
       const c = this.centroids[b];
       const x = Math.round(c.x * this.G - this.cam.x + W / 2), y = Math.round(c.y * this.G - this.cam.y + (VIEW.y0 + VIEW.y1) / 2);
       // only name branches the player has actually reached, mysteries stay mysterious
-      const reached = SKILLS.some((s) => s.b === b && ['avail', 'owned', 'max'].includes(this.state(s)));
-      if (reached) Font.draw(ctx, BRANCH[b].name.toUpperCase(), x, y - 4, { align: 'center', color: BRANCH[b].color, scale: 2, alpha: 0.14, shadow: null, bold: true });
+      const reached = T.nodes.some((s) => s.b === b && ['avail', 'owned', 'max'].includes(this.state(s)));
+      if (reached) Font.draw(ctx, T.branch[b].name.toUpperCase(), x, y - 4, { align: 'center', color: T.branch[b].color, scale: 2, alpha: 0.14, shadow: null, bold: true });
     }
     // ---- edges ----
     const flow = this.t * 0.8;
-    for (const sk of SKILLS) {
+    for (const sk of T.nodes) {
       const st = this.state(sk);
       if (st === 'hidden') continue;
       const b = this.pos(sk);
       for (const rid of sk.req) {
-        const r = SKILL_BY_ID[rid];
+        const r = T.byId[rid];
         const rs = this.state(r);
         if (rs === 'hidden' || rs === 'mystery') continue;
         const a = this.pos(r);
@@ -152,7 +174,7 @@ class SkillTreeView {
             const tt = (flow + k * 0.5 + hash2(sk.x, sk.y) ) % 1;
             const px = lerp(a.x, b.x, tt), py = lerp(a.y, b.y, tt);
             ctx.fillStyle = '#fff4c0'; ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3);
-            ctx.fillStyle = BRANCH[sk.b].color; ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
+            ctx.fillStyle = T.branch[sk.b].color; ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
           }
         } else if (ro) {
           pxDashLine(ctx, a.x, a.y, b.x, b.y, '#a0783a', 3, 2, -this.t * 14);
@@ -163,7 +185,7 @@ class SkillTreeView {
     }
     // ---- nodes ----
     let hov = null;
-    for (const sk of SKILLS) {
+    for (const sk of T.nodes) {
       const st = this.state(sk);
       if (st === 'hidden') continue;
       const p = this.pos(sk);
@@ -189,14 +211,14 @@ class SkillTreeView {
     // hint
     if (!P.tutorial.tree) {
       Font.draw(ctx, 'Ziehen zum Verschieben · Klicken zum Kaufen', W / 2, VIEW.y1 - 14, { align: 'center', color: '#c8b8a0', alpha: 0.6 + Math.sin(this.t * 3) * 0.3 });
-      if (Object.keys(P.C.skills).length > 1) P.tutorial.tree = true;
+      if (Object.keys(P.C.skills).length > 1 || Object.keys(P.gemSkills).length > 1) P.tutorial.tree = true;
     }
   }
 
   drawNode(ctx, sk, st, p, size, over, dt) {
-    const col = BRANCH[sk.b].color;
-    const lvl = skillLevel(sk.id);
-    const afford = (st === 'avail' || st === 'owned') && P.C.money >= skillPrice(sk);
+    const col = this.T.branch[sk.b].color;
+    const lvl = this.T.level(sk.id);
+    const afford = (st === 'avail' || st === 'owned') && this.T.wallet() >= this.T.price(sk);
     // animations
     let sc = 1;
     if (this.pop[sk.id] !== undefined) {
@@ -265,20 +287,21 @@ class SkillTreeView {
   drawTip(ctx, sk) {
     const st = this.state(sk);
     const p = this.pos(sk);
-    const col = BRANCH[sk.b].color;
+    const T = this.T;
+    const col = T.branch[sk.b].color;
     const lines = [];
     if (st === 'mystery') {
       lines.push({ t: '???', c: '#a8927a' });
       lines.push({ t: 'Kaufe einen verbundenen Skill, um diesen aufzudecken.', c: '#7a6a5a' });
     } else {
-      const l = skillLevel(sk.id);
+      const l = T.level(sk.id);
       lines.push({ t: sk.name, c: col });
-      lines.push({ t: BRANCH[sk.b].name + (sk.key ? ' · Schlüssel-Skill' : '') + (sk.max > 1 ? `  ·  Stufe ${l}/${sk.max}` : ''), c: '#8a7a6a' });
+      lines.push({ t: T.branch[sk.b].name + (sk.key ? ' · Schlüssel-Skill' : '') + (sk.max > 1 ? `  ·  Stufe ${l}/${sk.max}` : ''), c: '#8a7a6a' });
       if (l > 0) lines.push({ t: 'Aktuell: ' + sk.d(l), c: '#f3e6cf' });
       if (l < sk.max) {
         lines.push({ t: (l > 0 ? 'Nächste: ' : '') + sk.d(l + 1), c: '#9af08a' });
-        const price = skillPrice(sk);
-        lines.push({ t: 'Kosten: ' + money(price), c: P.C.money >= price ? '#ffe070' : '#ff7a6a' });
+        const price = T.price(sk);
+        lines.push({ t: 'Kosten: ' + T.fmt(price), c: T.wallet() >= price ? '#ffe070' : '#ff7a6a' });
       } else lines.push({ t: 'MAXIMAL', c: '#ffd040' });
     }
     UI.tooltip(lines, p.x + 20 > W - 210 ? p.x - 220 : p.x + 20, p.y - 10);

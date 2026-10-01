@@ -17,7 +17,7 @@ const PIGS = {
   bomb: { name: 'Bombenschwein', desc: 'Explodiert und reißt Nachbarn mit.', hp: 6, value: 32, speed: 16, behavior: 'wander', weight: 18, coins: ['silver'], unlock: 'PA', explode: true },
   mama: { name: 'Mama-Schwein', desc: 'Hinterlässt 3-5 Ferkel.', hp: 36, value: 72, speed: 9, behavior: 'wander', weight: 15, coins: ['silver', 'gold'], unlock: 'PB', piglets: true },
   safe: { name: 'Tresorschwein', desc: 'Gepanzert: Nur Krits richten vollen Schaden an.', hp: 85, value: 400, speed: 5, behavior: 'lazy', weight: 10, coins: ['gold', 'gold', 'silver'], unlock: 'PC', armor: 0.5, sound: 'metalhit' },
-  crystal: { name: 'Kristallschwein', desc: 'Lässt garantiert Edelsteine fallen.', hp: 18, value: 26, speed: 14, behavior: 'wander', weight: 10, coins: ['silver'], unlock: 'PD', gems: [3, 6] },
+  crystal: { name: 'Kristallschwein', desc: 'Lässt garantiert Diamanten fallen.', hp: 18, value: 26, speed: 14, behavior: 'wander', weight: 10, coins: ['silver'], unlock: 'PD', gems: [3, 6] },
   robo: { name: 'Robo-Schwein', desc: 'Treffer erzeugen Blitze, die Nachbarn schocken.', hp: 32, value: 145, speed: 24, behavior: 'wander', weight: 10, coins: ['silver', 'black'], unlock: 'PE', sound: 'metalhit', zap: true },
   ghost: { name: 'Geisterschwein', desc: 'Wird zeitweise unsichtbar und unverwundbar.', hp: 15, value: 115, speed: 18, behavior: 'wander', weight: 10, coins: ['platinum'], unlock: 'PF', ghost: true },
   zombie: { name: 'Zombieschwein', desc: 'Steht einmal wieder auf. Uuurgh... Münzen...', hp: 20, value: 60, speed: 10, behavior: 'wander', weight: 12, coins: ['copper', 'silver'], unlock: 'PZ', revive: true },
@@ -48,7 +48,7 @@ const HAMMERS = [
   { id: 'squeaky', name: 'Quietschehammer', desc: 'Winzig, irre schnell. Combo-Fenster +0.6s.', cost: 110, dmg: 0.32, rate: 3.2, radius: 1.15, crit: 0, critMult: 0, combo: 0.6, sound: 'squeak' },
   { id: 'ice', name: 'Eishammer', desc: 'Jeder Schlag baut Frost auf und friert alle Schweine ein.', cost: 140, dmg: 1, rate: 1, radius: 1.1, crit: 0, critMult: 0, freeze: 0.07 },
   { id: 'golden', name: 'Goldhammer', desc: '+45% Münzwert, Goldschweine doppelt so häufig.', cost: 170, dmg: 1, rate: 1, radius: 1, crit: 0.05, critMult: 0, coin: 0.45, golden: 2 },
-  { id: 'pickaxe', name: 'Spitzhacke', desc: 'Schürfer: x2.5 Edelsteine, solider Schaden.', cost: 200, dmg: 1.4, rate: 0.9, radius: 0.85, crit: 0.05, critMult: 0, gems: 2.5 },
+  { id: 'pickaxe', name: 'Spitzhacke', desc: 'Schürfer: x2.5 Diamanten, solider Schaden.', cost: 200, dmg: 1.4, rate: 0.9, radius: 0.85, crit: 0.05, critMult: 0, gems: 2.5 },
   { id: 'stamp', name: 'BEZAHLT-Stempel', desc: 'Jeder 8. Schlag stempelt mit 6x Schaden & riesigem Radius.', cost: 240, dmg: 1.1, rate: 1, radius: 1, crit: 0, critMult: 0, stamp: 8 },
   { id: 'mjolnir', name: 'Mjölnir', desc: '35% Blitzchance pro Schlag, +2 Kettenblitze.', cost: 300, dmg: 1.3, rate: 0.9, radius: 1.1, crit: 0, critMult: 0, lightning: 0.35, chains: 2 },
   { id: 'crystal', name: 'Kristallhammer', desc: '+25% Krit, +150% Krit-Schaden, x1.5 Glück.', cost: 380, dmg: 1.2, rate: 1, radius: 1, crit: 0.25, critMult: 1.5, luck: 1.5 },
@@ -74,7 +74,7 @@ const ENCHANTS = [
   { id: 'echo', name: 'Echo', icon: 'wave', color: '#8ac0ff', max: 5, d: (l) => `${l * 10}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.1 * l) },
   { id: 'goldtouch', name: 'Goldener Schlag', icon: 'coin', color: '#ffd040', max: 5, d: (l) => `Jeder Treffer schlägt Münzen heraus (${l * 4}% Wert)`, a: (s, l) => (s.goldTouch += 0.04 * l) },
   { id: 'shock', name: 'Schockwelle', icon: 'radius', color: '#e8e0ff', max: 5, d: (l) => `Krits lösen eine Schockwelle aus (${l * 40}% Schaden)`, a: (s, l) => (s.shockwave += 0.4 * l) },
-  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#ff9aa0', max: 5, d: (l) => `+${l * 20}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
+  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#ff9aa0', max: 5, d: (l) => `+${l * 20}% Diamantenchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
 ];
 const enchantCost = (lvl) => Math.round(18 * Math.pow(2, lvl));
 // completing every coin of a rarity grants a set bonus
@@ -98,6 +98,7 @@ const BRANCH = {
   pink: { name: 'Schweinezucht', color: '#f08ab0' },
   gym: { name: 'Fitnessstudio', color: '#f0903a' },
   coffee: { name: 'Koffein', color: '#c08a54' },
+  fire: { name: 'Feuerwerk', color: '#ff6a3a' },
 };
 
 const pct = (v) => Math.round(v * 100) + '%';
@@ -153,10 +154,10 @@ const SKILLS = [
 
   // ---- luck (NE / E) ----
   { id: 'L1', b: 'luck', x: 2, y: -1, req: ['G1', 'R1'], name: 'Glückspfennig', icon: 'clover', max: 10, cost: 60, grow: 1.6, d: (l) => `+${l * 15}% Chance auf seltene Münzen`, a: (s, l) => (s.rarePct += 0.15 * l) },
-  { id: 'L2', b: 'luck', x: 3, y: -2, req: ['L1'], name: 'Edelsteinader', icon: 'gem', max: 10, cost: 150, grow: 1.6, d: (l) => `+${l * 15}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.15 * l) },
+  { id: 'L2', b: 'luck', x: 3, y: -2, req: ['L1'], name: 'Diamantenader', icon: 'gem', max: 10, cost: 150, grow: 1.6, d: (l) => `+${l * 15}% Diamantenchance`, a: (s, l) => (s.gemPct += 0.15 * l) },
   { id: 'L3', b: 'luck', x: 4, y: -1, req: ['L1'], name: 'Jackpot-Riecher', icon: 'star', max: 10, cost: 240, grow: 1.6, d: (l) => `+${l * 25}% Jackpot-Chance`, a: (s, l) => (s.jackpotPct += 0.25 * l) },
   { id: 'L4', b: 'luck', x: 4, y: -3, req: ['L2'], name: 'Goldschwein', icon: 'pig', max: 5, cost: 900, grow: 1.9, d: (l) => `Goldschweine erscheinen (${l}x Häufigkeit)`, a: (s, l) => (s.goldenWeight += l) },
-  { id: 'LK', b: 'luck', x: 5, y: -2, req: ['L2', 'L3'], name: 'Vierblättriges Kleeblatt', icon: 'clover', max: 1, cost: 3200, grow: 1, key: true, d: () => `x2 Glück: seltene Münzen, Edelsteine, Jackpots`, a: (s) => (s.luck *= 2) },
+  { id: 'LK', b: 'luck', x: 5, y: -2, req: ['L2', 'L3'], name: 'Vierblättriges Kleeblatt', icon: 'clover', max: 1, cost: 3200, grow: 1, key: true, d: () => `x2 Glück: seltene Münzen, Diamanten, Jackpots`, a: (s) => (s.luck *= 2) },
   { id: 'L5', b: 'luck', x: 6, y: -1, req: ['LK'], name: 'Goldrausch', icon: 'coins', max: 3, cost: 8000, grow: 2.2, d: (l) => `${l * 2}% Chance: Goldrausch (alle Spawns 4s golden)`, a: (s, l) => (s.goldRush += 0.02 * l) },
   { id: 'L6', b: 'luck', x: 6, y: -3, req: ['LK'], name: 'Mega-Jackpot', icon: 'star', max: 8, cost: 9000, grow: 1.6, d: (l) => `+${l * 50}% Jackpot-Größe`, a: (s, l) => (s.jackpotMult += 5 * l) },
   { id: 'LX', b: 'luck', x: 7, y: -2, req: ['L5', 'L6'], name: 'Diamantschwein', icon: 'gem', max: 1, cost: 80000, grow: 1, key: true, d: () => `Das legendäre Diamantschwein kann erscheinen`, a: (s) => (s.diamondWeight += 1) },
@@ -217,11 +218,87 @@ const SKILLS = [
   { id: 'CK', b: 'coffee', x: -3, y: 4, req: ['C3', 'C4'], name: 'Energy-Drink', icon: 'drink', max: 1, cost: 4000, grow: 1, key: true, d: () => `Seltene Energy-Drinks: +40 Ausdauer & Raserei`, a: (s) => (s.energy = true) },
   { id: 'C5', b: 'coffee', x: -4, y: 3, req: ['C3'], name: 'Koffeinsucht', icon: 'coffee', max: 5, cost: 6000, grow: 1.7, d: (l) => `Jeder Kaffee: +${l * 2}% Schaden für den Rest des Runs`, a: (s, l) => (s.coffeeAddict += 0.02 * l) },
   { id: 'C6', b: 'coffee', x: -4, y: 5, req: ['CK', 'C5'], name: 'Barista-Lizenz', icon: 'coffee', max: 10, cost: 20000, grow: 1.6, d: (l) => `+${(l * 0.1).toFixed(1)} Ausdauer/s Regeneration`, a: (s, l) => (s.regen += 0.1 * l) },
+
+  // ---- fire: fireworks (far SW) ----
+  { id: 'FK', b: 'fire', x: -5, y: 3, req: ['C5', 'B6'], name: 'Brandbeschleuniger', icon: 'fire', max: 1, cost: 2500, grow: 1, key: true, d: () => `Treffer setzen Schweine 2s in Brand (+20% Schaden/s)`, a: (s) => (s.burn += 0.2) },
+  { id: 'F1', b: 'fire', x: -6, y: 2, req: ['FK'], name: 'Zündschnur', icon: 'fire', max: 8, cost: 4000, grow: 1.6, d: (l) => `+${l * 15}% Brandschaden`, a: (s, l) => (s.burn += 0.15 * l) },
+  { id: 'F2', b: 'fire', x: -6, y: 4, req: ['FK'], name: 'Böller', icon: 'bomb', max: 5, cost: 4500, grow: 1.7, d: (l) => `${l * 3}% Chance: Schweine explodieren beim Zerbrechen`, a: (s, l) => (s.bombChance += 0.03 * l) },
+  { id: 'F3', b: 'fire', x: -7, y: 3, req: ['F1', 'F2'], name: 'Sprengmeister', icon: 'bomb', max: 6, cost: 9000, grow: 1.6, d: (l) => `+${l * 40}% Explosionsschaden`, a: (s, l) => (s.bombDmg += 0.4 * l) },
+  { id: 'F4', b: 'fire', x: -7, y: 5, req: ['F2'], name: 'Partykanone', icon: 'star', max: 4, cost: 8000, grow: 1.7, d: (l) => `Party, Disco, Raserei & Goldrausch halten ${l * 15}% länger`, a: (s, l) => (s.buffDur += 0.15 * l) },
+  { id: 'FX', b: 'fire', x: -8, y: 4, req: ['F3', 'F4'], name: 'Silvesterknaller', icon: 'meteor', max: 1, cost: 50000, grow: 1, key: true, d: () => `Opfer von Explosionen geben +60% Münzen und brennen`, a: (s) => { s.bombGold += 0.6; s.bombBurn = true; } },
+  // ---- extra luck node ----
+  { id: 'L7', b: 'luck', x: 5, y: -4, req: ['L4'], name: 'Lotto-Annahmestelle', icon: 'card', max: 6, cost: 2500, grow: 1.6, d: (l) => `Lottoscheine erscheinen ${(1 + l * 0.5).toFixed(1)}x so oft`, a: (s, l) => (s.lotteryMult *= 1 + 0.5 * l) },
 ];
 // deeper nodes get progressively pricier so the tree stays meaningful late game
 for (const sk of SKILLS) if (sk.cost >= 600) sk.cost = Math.round(sk.cost * (1 + Math.log10(sk.cost / 600) * 2.5));
 const SKILL_BY_ID = Object.fromEntries(SKILLS.map((s) => [s.id, s]));
 const skillCost = (sk, lvl) => Math.round(sk.cost * Math.pow(sk.grow, lvl));
+
+// ---------------- DIAMOND TREE (bought with gems, survives bankruptcy) ----------------
+const GBRANCH = {
+  groot: { name: 'Schatzkammer', color: '#ff9aa0' },
+  gsmith: { name: 'Werkstatt', color: '#e8603e' },
+  gluck: { name: 'Glücksspiel', color: '#ffd040' },
+  gbook: { name: 'Buchhaltung', color: '#7af0b0' },
+  gbody: { name: 'Kondition', color: '#ff9a5a' },
+  gfarm: { name: 'Schweinestall', color: '#f08ab0' },
+  gcard: { name: 'Kartentisch', color: '#b88aff' },
+};
+const GEM_SKILLS = [
+  { id: 'DO', b: 'groot', x: 0, y: 0, req: [], name: 'Schatzkammer', icon: 'gem', max: 5, cost: 8, grow: 1.6, key: true, d: (l) => `+${l * 5}% Münzwert (dauerhaft)`, a: (s, l) => (s.coinPct += 0.05 * l) },
+
+  // ---- workshop (N): permanent hammer power ----
+  { id: 'DW1', b: 'gsmith', x: 0, y: -1, req: ['DO'], name: 'Stahlkern', icon: 'hammer', max: 10, cost: 15, grow: 1.35, d: (l) => `+${l * 8}% Schaden`, a: (s, l) => (s.dmgPct += 0.08 * l) },
+  { id: 'DW2', b: 'gsmith', x: -1, y: -2, req: ['DW1'], name: 'Leichtbau', icon: 'speed', max: 10, cost: 25, grow: 1.35, d: (l) => `+${l * 5}% Schlagtempo`, a: (s, l) => (s.speedPct += 0.05 * l) },
+  { id: 'DW3', b: 'gsmith', x: 1, y: -2, req: ['DW1'], name: 'Scharfe Kante', icon: 'crit', max: 10, cost: 25, grow: 1.35, d: (l) => `+${l * 2}% Krit-Chance`, a: (s, l) => (s.crit += 0.02 * l) },
+  { id: 'DW4', b: 'gsmith', x: -1, y: -3, req: ['DW2'], name: 'Langer Stiel', icon: 'radius', max: 6, cost: 60, grow: 1.4, d: (l) => `+${l * 5}% Radius`, a: (s, l) => (s.radiusPct += 0.05 * l) },
+  { id: 'DW5', b: 'gsmith', x: 1, y: -3, req: ['DW3'], name: 'Kernschuss', icon: 'crit', max: 8, cost: 60, grow: 1.4, d: (l) => `+${l * 20}% Krit-Schaden`, a: (s, l) => (s.critMult += 0.2 * l) },
+  { id: 'DWK', b: 'gsmith', x: 0, y: -4, req: ['DW4', 'DW5'], name: 'Meisterstück', icon: 'hammer', max: 3, cost: 300, grow: 2, key: true, d: (l) => `x${Math.pow(1.3, l).toFixed(2)} Schaden`, a: (s, l) => (s.dmgMore *= Math.pow(1.3, l)) },
+  { id: 'DW6', b: 'gsmith', x: 0, y: -5, req: ['DWK'], name: 'Zwillingsschlag', icon: 'hammer', max: 5, cost: 400, grow: 1.5, d: (l) => `${l * 4}% Chance, doppelt zu treffen`, a: (s, l) => (s.double += 0.04 * l) },
+
+  // ---- gambling (NE): luck, gems, jackpots ----
+  { id: 'DL1', b: 'gluck', x: 2, y: -1, req: ['DO'], name: 'Glücksbringer', icon: 'clover', max: 10, cost: 20, grow: 1.35, d: (l) => `+${l * 10}% Glück`, a: (s, l) => (s.luckPct += 0.1 * l) },
+  { id: 'DL2', b: 'gluck', x: 3, y: -2, req: ['DL1'], name: 'Wünschelrute', icon: 'gem', max: 8, cost: 40, grow: 1.4, d: (l) => `+${l * 15}% Diamantenchance`, a: (s, l) => (s.gemPct += 0.15 * l) },
+  { id: 'DL3', b: 'gluck', x: 4, y: -1, req: ['DL1'], name: 'Spielernase', icon: 'star', max: 8, cost: 40, grow: 1.4, d: (l) => `+${l * 20}% Jackpot-Chance`, a: (s, l) => (s.jackpotPct += 0.2 * l) },
+  { id: 'DL4', b: 'gluck', x: 4, y: -3, req: ['DL2'], name: 'Münzsammler', icon: 'coin', max: 8, cost: 80, grow: 1.4, d: (l) => `+${l * 20}% Chance auf seltene Münzen`, a: (s, l) => (s.rarePct += 0.2 * l) },
+  { id: 'DLK', b: 'gluck', x: 5, y: -2, req: ['DL2', 'DL3'], name: 'Diamantregen', icon: 'gem', max: 3, cost: 250, grow: 2, key: true, d: (l) => `Jackpots regnen ${l * 3} Diamanten`, a: (s, l) => (s.jackpotGems += 3 * l) },
+  { id: 'DL5', b: 'gluck', x: 6, y: -3, req: ['DLK'], name: 'Goldgräber', icon: 'coins', max: 3, cost: 500, grow: 2, d: (l) => `Goldschweine erscheinen (${(l * 0.5).toFixed(1)}x Häufigkeit)`, a: (s, l) => (s.goldenWeight += 0.5 * l) },
+  { id: 'DLX', b: 'gluck', x: 6, y: -1, req: ['DLK'], name: 'Glückspilz', icon: 'clover', max: 1, cost: 1500, grow: 1, key: true, d: () => `x1.5 Glück`, a: (s) => (s.luck *= 1.5) },
+
+  // ---- bookkeeping (E/SE): bills, paying early, money ----
+  { id: 'DB1', b: 'gbook', x: 2, y: 1, req: ['DO'], name: 'Frühzahler', icon: 'percent', max: 8, cost: 15, grow: 1.4, d: (l) => `+${l * 25}% Diamanten fürs frühe Bezahlen`, a: (s, l) => (s.earlyPay += 0.25 * l) },
+  { id: 'DB2', b: 'gbook', x: 3, y: 2, req: ['DB1'], name: 'Startkapital', icon: 'bag', max: 5, cost: 30, grow: 1.6, d: (l) => `+$${l * 40} Startgeld in jedem Zyklus`, a: (s, l) => (s.startMoney += 40 * l) },
+  { id: 'DB3', b: 'gbook', x: 4, y: 1, req: ['DB1'], name: 'Zinseszins', icon: 'percent', max: 5, cost: 60, grow: 1.5, d: (l) => `+${l}% Zinsen auf Erspartes pro Tag`, a: (s, l) => (s.interest += 0.01 * l) },
+  { id: 'DB4', b: 'gbook', x: 4, y: 3, req: ['DB2'], name: 'Steuerberater', icon: 'calendar', max: 5, cost: 80, grow: 1.5, d: (l) => `${l * 3}% jeder bezahlten Rechnung zurück`, a: (s, l) => (s.billRefund += 0.03 * l) },
+  { id: 'DBK', b: 'gbook', x: 5, y: 2, req: ['DB3', 'DB4'], name: 'Erbschaft', icon: 'star', max: 4, cost: 300, grow: 1.8, key: true, d: (l) => `Neue Rekorde geben +${l * 25}% Vermächtnispunkte`, a: (s, l) => (s.ppBonus += 0.25 * l) },
+  { id: 'DB5', b: 'gbook', x: 6, y: 3, req: ['DBK'], name: 'Feierabendbier', icon: 'drink', max: 6, cost: 400, grow: 1.5, d: (l) => `+${l * 5}% Feierabend-Bonus auf Run-Einnahmen`, a: (s, l) => (s.endBonus += 0.05 * l) },
+  { id: 'DBX', b: 'gbook', x: 6, y: 1, req: ['DBK'], name: 'Zahlungsaufschub', icon: 'calendar', max: 1, cost: 2000, grow: 1, key: true, d: () => `Alle Rechnungen: +1 Tag Frist`, a: (s) => (s.dueBonus += 1) },
+
+  // ---- fitness (S): stamina ----
+  { id: 'DK1', b: 'gbody', x: 0, y: 1, req: ['DO'], name: 'Morgensport', icon: 'dumbbell', max: 10, cost: 15, grow: 1.35, d: (l) => `+${l * 5} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 5 * l) },
+  { id: 'DK2', b: 'gbody', x: -1, y: 2, req: ['DK1'], name: 'Powernap', icon: 'heart', max: 8, cost: 35, grow: 1.4, d: (l) => `+${(l * 0.05).toFixed(2)} Ausdauer/s Regeneration`, a: (s, l) => (s.regen += 0.05 * l) },
+  { id: 'DK3', b: 'gbody', x: 1, y: 2, req: ['DK1'], name: 'Ergonomischer Griff', icon: 'fist', max: 8, cost: 35, grow: 1.4, d: (l) => `-${l * 4}% Ausdauerkosten pro Schlag`, a: (s, l) => (s.costPct -= 0.04 * l) },
+  { id: 'DKK', b: 'gbody', x: 0, y: 3, req: ['DK2', 'DK3'], name: 'Zweite Luft', icon: 'heart', max: 3, cost: 200, grow: 2, key: true, d: (l) => `Einmal pro Run bei 0 Ausdauer: +${l * 15}% zurück`, a: (s, l) => (s.secondWind = Math.max(s.secondWind, 0.15 * l)) },
+  { id: 'DK4', b: 'gbody', x: -1, y: 4, req: ['DKK'], name: 'Kaffee-Flatrate', icon: 'coffee', max: 3, cost: 300, grow: 1.7, d: (l) => `Kaffeetassen erscheinen (${l}x), Kaffee +${l * 20}% stärker`, a: (s, l) => { s.coffee += l; s.coffeeAmt += 0.2 * l; } },
+  { id: 'DK5', b: 'gbody', x: 1, y: 4, req: ['DKK'], name: 'Ausdauerläufer', icon: 'dumbbell', max: 6, cost: 300, grow: 1.45, d: (l) => `+${l * 6}% max. Ausdauer`, a: (s, l) => (s.staminaPct += 0.06 * l) },
+  { id: 'DKX', b: 'gbody', x: 0, y: 5, req: ['DK4', 'DK5'], name: 'Eiserne Lunge', icon: 'fist', max: 1, cost: 1800, grow: 1, key: true, d: () => `Ausdauer sinkt 25% langsamer`, a: (s) => (s.drainPct -= 0.25) },
+
+  // ---- pig farm (W): spawns, events ----
+  { id: 'DS1', b: 'gfarm', x: -2, y: 1, req: ['DO'], name: 'Lockfutter', icon: 'piggyPlus', max: 8, cost: 15, grow: 1.4, d: (l) => `+${l * 8}% Spawnrate`, a: (s, l) => (s.spawnPct += 0.08 * l) },
+  { id: 'DS2', b: 'gfarm', x: -3, y: 2, req: ['DS1'], name: 'Stallanbau', icon: 'piggyPlus', max: 3, cost: 120, grow: 2.2, d: (l) => `+${l} max. Schweine auf dem Tisch`, a: (s, l) => (s.maxPigs += l) },
+  { id: 'DS3', b: 'gfarm', x: -3, y: 0, req: ['DS1'], name: 'Rassezucht', icon: 'pig', max: 8, cost: 60, grow: 1.4, d: (l) => `Seltene Schweine +${l * 10}% häufiger`, a: (s, l) => (s.rarePig += 0.1 * l) },
+  { id: 'DSK', b: 'gfarm', x: -4, y: 1, req: ['DS2', 'DS3'], name: 'Ferkelbonus', icon: 'pig', max: 2, cost: 250, grow: 2.5, key: true, d: (l) => `Ferkel geben x${l + 1} Münzen`, a: (s, l) => (s.pigletValue += l) },
+  { id: 'DS4', b: 'gfarm', x: -5, y: 2, req: ['DSK'], name: 'Mastfutter', icon: 'coins', max: 8, cost: 200, grow: 1.4, d: (l) => `+${l * 10}% Münzwert`, a: (s, l) => (s.coinPct += 0.1 * l) },
+  { id: 'DS5', b: 'gfarm', x: -5, y: 0, req: ['DSK'], name: 'Wetterbericht', icon: 'calendar', max: 5, cost: 150, grow: 1.6, d: (l) => `+${l * 8}% Chance auf Tagesereignisse`, a: (s, l) => (s.eventChance += 0.08 * l) },
+  { id: 'DS6', b: 'gfarm', x: -6, y: 1, req: ['DS4', 'DS5'], name: 'Eventplaner', icon: 'star', max: 5, cost: 500, grow: 1.6, d: (l) => `+${l * 15}% Münzwert an Tagen mit Ereignis`, a: (s, l) => (s.eventCoin += 0.15 * l) },
+
+  // ---- card table (NW): perk choices ----
+  { id: 'DC1', b: 'gcard', x: -2, y: -1, req: ['DO'], name: 'Gezinkte Karten', icon: 'card', max: 4, cost: 40, grow: 1.6, d: (l) => `Seltene & epische Perks +${l * 25}% häufiger`, a: (s, l) => (s.perkLuck += 0.25 * l) },
+  { id: 'DC2', b: 'gcard', x: -3, y: -2, req: ['DC1'], name: 'Gratis mischen', icon: 'card', max: 2, cost: 100, grow: 3, d: (l) => `${l}x pro Rechnung kostenlos neu mischen`, a: (s, l) => (s.freeRerolls += l) },
+  { id: 'DC3', b: 'gcard', x: -4, y: -1, req: ['DC1'], name: 'Partyprofi', icon: 'drink', max: 5, cost: 120, grow: 1.6, d: (l) => `Party, Disco, Raserei & Goldrausch halten ${l * 10}% länger`, a: (s, l) => (s.buffDur += 0.1 * l) },
+  { id: 'DCK', b: 'gcard', x: -4, y: -3, req: ['DC2', 'DC3'], name: 'Kartenzähler', icon: 'card', max: 1, cost: 900, grow: 1, key: true, d: () => `+1 Karte bei jeder Perk-Auswahl`, a: (s) => (s.perkChoices += 1) },
+];
+const GEM_SKILL_BY_ID = Object.fromEntries(GEM_SKILLS.map((s) => [s.id, s]));
 
 // ---------------- PERKS (choose one after each paid bill) ----------------
 // rarity: 1 common, 2 rare, 3 epic
@@ -238,7 +315,7 @@ const PERKS = [
   { id: 'jackpot', name: 'Jackpot-Jäger', icon: 'star', r: 2, max: 3, d: (l) => `x${l + 1} Jackpot-Chance`, a: (s, l) => (s.jackpotMore *= l + 1) },
   { id: 'magnet', name: 'Schweinemagnet', icon: 'magnet', r: 1, max: 5, d: (l) => `+${l} max. Schweine, +${l * 20}% Spawnrate`, a: (s, l) => { s.maxPigs += l; s.spawnPct += 0.2 * l; } },
   { id: 'penny', name: 'Glückspfennig', icon: 'clover', r: 1, max: 3, d: (l) => `+${l * 50}% seltene Münzen`, a: (s, l) => (s.rarePct += 0.5 * l) },
-  { id: 'gemhunter', name: 'Edelsteinsucher', icon: 'gem', r: 1, max: 3, d: (l) => `+${l * 40}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.4 * l) },
+  { id: 'gemhunter', name: 'Diamantensucher', icon: 'gem', r: 1, max: 3, d: (l) => `+${l * 40}% Diamantenchance`, a: (s, l) => (s.gemPct += 0.4 * l) },
   { id: 'refund', name: 'Steuerrückerstattung', icon: 'bag', r: 2, max: 3, d: (l) => `${l * 10}% jeder bezahlten Rechnung zurück`, a: (s, l) => (s.billRefund += 0.1 * l) },
   { id: 'discount', name: 'Rabattkarte', icon: 'card', r: 1, max: 3, d: (l) => `Skillbaum ${l * 8}% günstiger`, a: (s, l) => (s.skillDiscount += 0.08 * l) },
   { id: 'delay', name: 'Zahlungsaufschub', icon: 'calendar', r: 3, max: 2, d: (l) => `Neue Rechnungen: +${l} Tag Frist`, a: (s, l) => (s.dueBonus += l) },
@@ -257,9 +334,37 @@ const PERKS = [
   { id: 'piggybank', name: 'Sparschwein-Sparschwein', icon: 'pig', r: 3, max: 1, d: () => `Ferkel erscheinen in Rudeln (3-5 auf einmal)`, a: (s) => (s.pigletPacks = true) },
   { id: 'overtime', name: 'Überstunden', icon: 'hourglass', r: 2, max: 3, d: (l) => `Ausdauer sinkt ${l * 20}% langsamer`, a: (s, l) => (s.drainPct -= 0.2 * l) },
   { id: 'sniper', name: 'Präzisionsschlag', icon: 'eye', r: 2, max: 3, d: (l) => `Einzeltreffer: +${l * 60}% Schaden`, a: (s, l) => (s.single += 0.6 * l) },
-  { id: 'gemrain', name: 'Juwelenregen', icon: 'gem', r: 3, max: 2, d: (l) => `Jackpots regnen ${l * 5} Edelsteine`, a: (s, l) => (s.jackpotGems += 5 * l) },
+  { id: 'gemrain', name: 'Juwelenregen', icon: 'gem', r: 3, max: 2, d: (l) => `Jackpots regnen ${l * 5} Diamanten`, a: (s, l) => (s.jackpotGems += 5 * l) },
+
+  // ---- perk cards unlocked in the jewel box with legacy points (vp = price) ----
+  { id: 'heavy', name: 'Schwergewicht', icon: 'fist', r: 1, max: 5, vp: 3, d: (l) => `+${l * 25}% Schaden`, a: (s, l) => (s.dmgPct += 0.25 * l) },
+  { id: 'quick', name: 'Flinke Finger', icon: 'speed', r: 1, max: 5, vp: 3, d: (l) => `+${l * 10}% Schlagtempo`, a: (s, l) => (s.speedPct += 0.1 * l) },
+  { id: 'fortune', name: 'Glückskeks', icon: 'clover', r: 1, max: 3, vp: 4, d: (l) => `+${l * 25}% Glück`, a: (s, l) => (s.luckPct += 0.25 * l) },
+  { id: 'skonto', name: 'Skonto-Profi', icon: 'percent', r: 1, max: 3, vp: 4, d: (l) => `+${l * 50}% Diamanten fürs frühe Bezahlen`, a: (s, l) => (s.earlyPay += 0.5 * l) },
+  { id: 'barista', name: 'Siebträger', icon: 'coffee', r: 1, max: 3, vp: 5, d: (l) => `+${(l * 0.15).toFixed(2)} Ausdauer/s Regeneration`, a: (s, l) => (s.regen += 0.15 * l) },
+  { id: 'pigletparty', name: 'Ferkelparty', icon: 'pig', r: 2, max: 2, vp: 6, d: (l) => `Ferkel kommen in Rudeln und geben x${l + 1} Münzen`, a: (s, l) => { s.pigletPacks = true; s.pigletValue += l; } },
+  { id: 'lotto', name: 'Lottofieber', icon: 'card', r: 2, max: 3, vp: 6, d: (l) => `Lottoscheine erscheinen ${l + 1}x so oft`, a: (s, l) => (s.lotteryMult *= l + 1) },
+  { id: 'arson', name: 'Brandstifter', icon: 'fire', r: 2, max: 3, vp: 6, d: (l) => `Treffer setzen Schweine in Brand (${l * 30}% Schaden/s)`, a: (s, l) => (s.burn += 0.3 * l) },
+  { id: 'bloodlust', name: 'Blutdurst', icon: 'heart', r: 2, max: 3, vp: 7, d: (l) => `Jeder Treffer heilt ${(l * 0.2).toFixed(1)} Ausdauer (max. 1,5 Balken/Run)`, a: (s, l) => (s.vamp += 0.2 * l) },
+  { id: 'weather', name: 'Wetterfrosch', icon: 'bolt', r: 2, max: 3, vp: 8, d: (l) => `Alle ${[0, 3, 2.2, 1.5][l]}s schlägt ein Blitz ein`, a: (s, l) => (s.storm = s.storm ? Math.min(s.storm, [0, 3, 2.2, 1.5][l]) : [0, 3, 2.2, 1.5][l]) },
+  { id: 'twin', name: 'Doppelgänger', icon: 'wave', r: 2, max: 3, vp: 8, d: (l) => `${l * 12}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.12 * l) },
+  { id: 'bounty', name: 'Kopfgeld', icon: 'skull', r: 2, max: 2, vp: 8, d: (l) => `Gerichtsvollzieher trägt +${l * 50}% Beute und bleibt ${l * 5}s länger`, a: (s, l) => { s.bossBonus += 0.5 * l; s.bossTime += 5 * l; } },
+  { id: 'shock', name: 'Schockwelle', icon: 'radius', r: 2, max: 3, vp: 9, d: (l) => `Krits lösen eine Schockwelle aus (${l * 50}% Schaden)`, a: (s, l) => (s.shockwave += 0.5 * l) },
+  { id: 'cutter', name: 'Diamantschleifer', icon: 'gem', r: 2, max: 3, vp: 10, d: (l) => `x${(1 + 0.3 * l).toFixed(1)} Diamanten`, a: (s, l) => (s.gemMore *= 1 + 0.3 * l) },
+  { id: 'xray', name: 'Röntgenbrille', icon: 'eye', r: 2, max: 1, vp: 10, d: () => `Geister sind immer treffbar, Ninjas weichen nur halb so oft aus`, a: (s) => (s.xray = true) },
+  { id: 'goose', name: 'Goldene Gans', icon: 'coins', r: 3, max: 3, vp: 12, d: (l) => `Goldschweine erscheinen (${l}x Häufigkeit)`, a: (s, l) => (s.goldenWeight += l) },
+  { id: 'comboking', name: 'Combo-König', icon: 'chain', r: 3, max: 2, vp: 12, d: (l) => `+${l * 3}% Münzen pro Combo-Treffer, +${(l * 0.5).toFixed(1)}s Fenster`, a: (s, l) => { s.comboCoin += 0.03 * l; s.comboWindow += 0.5 * l; } },
+  { id: 'midas', name: 'Midas-Touch', icon: 'crown', r: 3, max: 1, vp: 15, d: () => `x1.6 Münzwert`, a: (s) => (s.coinMore *= 1.6) },
+  { id: 'shootingstar', name: 'Sternschnuppe', icon: 'meteor', r: 3, max: 1, vp: 15, d: () => `Steinregen freigeschaltet, jeder Regen endet mit einem Meteor`, a: (s) => { s.stoneRain = true; s.meteor = true; } },
+  { id: 'royal', name: 'Audienz', icon: 'crown', r: 3, max: 1, vp: 18, d: () => `Das Königsschwein erscheint auf dem Tisch`, a: (s) => s.pigs.add('king') },
+  { id: 'cardtrick', name: 'Kartentrick', icon: 'card', r: 3, max: 1, vp: 20, d: () => `Ab jetzt +1 Karte bei jeder Perk-Auswahl`, a: (s) => (s.perkChoices += 1) },
+  { id: 'diamondfever', name: 'Diamantfieber', icon: 'gem', r: 4, max: 1, vp: 25, d: () => `Das legendäre Diamantschwein kann erscheinen`, a: (s) => (s.diamondWeight += 1) },
+  { id: 'goldhand', name: 'Goldenes Händchen', icon: 'star', r: 4, max: 1, vp: 30, d: () => `x2 Schaden und x2 Münzwert`, a: (s) => { s.dmgMore *= 2; s.coinMore *= 2; } },
 ];
 const PERK_BY_ID = Object.fromEntries(PERKS.map((p) => [p.id, p]));
+const VP_PERKS = PERKS.filter((p) => p.vp);
+// perks without a price are always in the pool, the others need to be unlocked with VP first
+const perkUnlocked = (p) => !p.vp || !!(P && P.perkUnlocks && P.perkUnlocks[p.id]);
 const RARITY = {
   1: { name: 'Gewöhnlich', color: '#c8b89a' },
   2: { name: 'Selten', color: '#5ab0ff' },
@@ -268,61 +373,66 @@ const RARITY = {
 };
 
 // ---------------- BILLS ----------------
+// only bills that really exist – just with Bill's luck. Names are feminine so "die {bill}" always works.
 const BILLS = [
-  { name: 'Handyrechnung', q: 'Ich telefoniere doch gar nicht so viel...' },
+  { name: 'Handyrechnung', q: 'Ich telefoniere nie. Ich schaue nur Schweinevideos. In 4K.' },
   { name: 'Stromrechnung', q: 'Wer hat das Licht angelassen? Ach, ich.' },
-  { name: 'Internet', q: 'Ohne WLAN keine Katzenvideos. Das ist ein Grundrecht!' },
+  { name: 'Internetrechnung', q: 'Ohne WLAN keine Katzenvideos. Das ist ein Grundrecht!' },
   { name: 'Wasserrechnung', q: 'Ab jetzt dusche ich kalt. Und kurz. Und selten.' },
-  { name: 'Rundfunkbeitrag', q: 'Ich hab nicht mal einen Fernseher!' },
-  { name: 'Fitnessstudio-Abo', q: 'Ich war da genau einmal. Im Januar.' },
-  { name: 'Mietzahlung', q: 'Mein Vermieter lächelt nie. Niemals.' },
-  { name: 'Autoversicherung', q: 'Mein Auto ist älter als ich.' },
-  { name: 'Zahnarzt', q: 'Die Wurzelbehandlung war es wert. Nicht.' },
-  { name: 'Streaming-Abos', q: 'Elf Abos. Ich schaue nur eins.' },
-  { name: 'Kreditkarte', q: 'Wer hat das alles gekauft?! ...Oh.' },
-  { name: 'Tierarzt', q: 'Für Mr. Whiskers. Jeden Cent wert.' },
-  { name: 'Steuernachzahlung', q: 'Das Finanzamt vergisst nie.' },
-  { name: 'Heizkosten', q: 'Drei Pullover sind auch eine Heizung.' },
-  { name: 'Hochzeitsgeschenk', q: 'Meine Cousine heiratet. Zum dritten Mal.' },
-  { name: 'Dachreparatur', q: 'Es regnet ins Wohnzimmer. Sehr gemütlich.' },
-  { name: 'Studienkredit', q: 'Mein Philosophie-Diplom zahlt sich aus. Irgendwann.' },
-  { name: 'Anwaltskosten', q: 'Ich sag nur: Gartenzwerg-Affäre.' },
-  { name: 'Sportwagen-Leasing', q: 'Midlife-Crisis? Ich? Niemals.' },
-  { name: 'Yacht-Liegeplatz', q: 'Ich habe keine Yacht. Nur den Liegeplatz.' },
+  { name: 'GEZ-Gebühr', q: 'Ich hab nicht mal einen Fernseher! Nur drei Bildschirme.' },
+  { name: 'Fitnessstudio-Gebühr', q: 'Ich war da genau einmal. Im Januar. Zum Duschen.' },
+  { name: 'Monatsmiete', q: 'Mein Vermieter lächelt nie. Niemals.' },
+  { name: 'Kfz-Versicherung', q: 'Mein Auto ist älter als ich. Und hat mehr Dellen.' },
+  { name: 'Zahnarztrechnung', q: 'Die Wurzelbehandlung war es wert. Nicht.' },
+  { name: 'Kreditkartenabrechnung', q: 'Wer hat das alles gekauft?! ...Oh.' },
+  { name: 'Tierarztrechnung', q: 'Für Mr. Whiskers. Jeden Cent wert. Sagt Mr. Whiskers.' },
+  { name: 'Steuernachzahlung', q: 'Das Finanzamt vergisst nie. Nie.' },
+  { name: 'Nebenkostenabrechnung', q: 'Drei Pullover sind auch eine Heizung.' },
+  { name: 'Dachdeckerrechnung', q: 'Es regnet ins Wohnzimmer. Sehr gemütlich.' },
+  { name: 'Hochzeitsrechnung', q: 'Meine Cousine heiratet. Zum dritten Mal. Ich zahle das Buffet.' },
+  { name: 'Studienkredit-Rate', q: 'Mein Philosophie-Diplom zahlt sich aus. Irgendwann.' },
+  { name: 'Anwaltsrechnung', q: 'Ich sag nur: Gartenzwerg-Affäre.' },
+  { name: 'Sportwagen-Leasingrate', q: 'Midlife-Crisis? Ich? Niemals.' },
+  { name: 'Liegeplatzgebühr', q: 'Ich habe keine Yacht. Nur den Liegeplatz.' },
   { name: 'Privatjet-Wartung', q: 'Wie ist DAS denn passiert?' },
-  { name: 'Schlossrenovierung', q: 'Erbe von Tante Gertrud. Mit Schulden.' },
-  { name: 'Fußballverein', q: 'Ich hab aus Versehen einen Verein gekauft.' },
-  { name: 'Inselsteuer', q: 'Meine Insel. Meine Steuern. Mein Problem.' },
-  { name: 'Mondgrundstück', q: 'Der Mond ist teurer als gedacht.' },
-  { name: 'Raumstation-Miete', q: 'Houston, wir haben eine Rechnung.' },
-  { name: 'Staatsschulden', q: 'Wieso schulde ICH die Staatsschulden?!' },
-  { name: 'Zeitmaschinen-Reparatur', q: 'Ich habe sie gestern schon bezahlt. Glaube ich.' },
-  { name: 'Paralleluniversum-Gebühr', q: 'Mein anderes Ich hat auch Schulden.' },
-  { name: 'Rechnung des Universums', q: 'Ist das... die letzte?' },
+  { name: 'Schlossrenovierung', q: 'Erbe von Tante Gertrud. Mit Schimmel.' },
+  { name: 'Ablösesumme', q: 'Ich hab aus Versehen einen Stürmer gekauft. Er trifft nicht mal das Tor.' },
+  { name: 'Erbschaftssteuer', q: 'Tante Gertrud hat mir alles vererbt. Auch das Finanzamt.' },
+  { name: 'Super-Bowl-Werbung', q: '30 Sekunden Werbung für mein Sparschwein-Startup. 29 davon: Oink.' },
+  { name: 'Werftrechnung', q: 'Meine Yacht ist fertig. Sie passt nicht in den Liegeplatz.' },
+  { name: 'Weltraumreise', q: 'Houston, wir haben eine Rechnung.' },
+  { name: 'Satellitenstart-Rechnung', q: 'Mein eigener Satellit. Er funkt nur "Oink".' },
+  { name: 'KI-Stromrechnung', q: 'Meine KI braucht ein eigenes Kraftwerk. Sie rechnet aus, wie ich Strom spare.' },
+  { name: 'Olympia-Bewerbung', q: 'Olympia in meinem Garten! Disziplin: Sparschwein-Weitwurf.' },
+  { name: 'BER-Nachzahlung', q: 'Mein Flughafen ist fertig. Neun Jahre zu spät. Ist das... die letzte?' },
 ];
 // funny special bills: they randomly replace a regular bill (same amount and deadline),
-// purely for variety. Names are feminine so "die {bill}" always works.
+// purely for variety. All of them exist for real. Names are feminine so "die {bill}" always works.
 const FUNNY_BILLS = [
   { name: 'Claude-Rechnung', q: 'Ich hab Claude gefragt, wie ich Geld spare. Das hier ist die Antwort.', item: "4.812x 'Mach das kürzer', 4.811x 'Jetzt wieder länger'" },
-  { name: 'Token-Nachzahlung', q: 'Wer hätte gedacht, dass "Danke!" auch was kostet?', item: "Höflichkeitszuschlag: 9.000x 'Danke', 4.000x 'Bitte'" },
-  { name: 'Guten-Morgen-Gebühr', q: 'Oma schickt jeden Morgen 14 Blumen-GIFs. In 4K.', item: 'Datenvolumen: 38 GB Rosen mit Glitzer' },
-  { name: 'Unterhaltszahlung', q: 'Ich zahle Unterhalt für ein Sparschwein. Es war... kompliziert.', item: 'Für: 1 Ferkel (rosa), Taschengeld inkl. Münzschlitz' },
-  { name: 'Ex-Streaming-Gebühr', q: 'Meine Ex nutzt noch mein Netflix. Und ihr Neuer. Und seine Mutter.', item: "Profile: 'Bill', 'NICHT Bill', 'Bill weint'" },
-  { name: 'Gartenzwerg-Kaution', q: 'Kevin, der Gartenzwerg, ist wieder in U-Haft.', item: 'Kaution für 1 Zwerg. Zustand: uneinsichtig' },
-  { name: 'Taubenfutter-Strafe', q: 'Es war nur EIN Croissant. Für 300 Tauben.', item: 'Grobe Fütterung, Taubenaufstand (Mitschuld)' },
-  { name: 'Ruhestörungs-Mahnung', q: 'Ich habe laut geniest. Um 22:01 Uhr.', item: 'Niesen (1x), Lachen (Verdacht), Atmen (laut)' },
-  { name: 'Gewissens-Abgabe', q: 'Ich habe Mama seit Dienstag nicht angerufen.', item: "Seufzer: 47, 'Ich sag ja nix': 12" },
-  { name: 'Achtsamkeits-Gebühr', q: 'Die Meditations-App hat mir Stress berechnet. Ironisch.', item: 'Atemübung Premium: Ein- UND Ausatmen' },
-  { name: 'Drachen-Versicherung', q: 'Man weiß ja nie.', item: 'Deckung: Feuer, Goldraub, Prinzessinnen' },
-  { name: 'Rechnungsrechnung', q: 'Eine Rechnung dafür, dass ich Rechnungen bekomme. Natürlich.', item: 'Bearbeitungsgebühr für diese Bearbeitungsgebühr' },
-  { name: 'Kühlschrank-Gebühr', q: 'Mein smarter Kühlschrank hat ein Abo abgeschlossen. Für Eiswürfel.', item: 'Eiswürfel Plus, Licht-geht-an-Pauschale' },
+  { name: 'Schlüsseldienst-Rechnung', q: 'Die Tür war nur zugezogen. Er hat vier Sekunden gebraucht.', item: 'Anfahrt 2 km, Tür auf: 4 Sek., Sonntagszuschlag (war Dienstag)' },
+  { name: 'Abschleppgebühr', q: 'Ich stand nur kurz im Halteverbot. Zum Bäcker. Drei Stunden.', item: '1x Auto, 1x Haken, 1x sehr glücklicher Abschlepper' },
+  { name: 'Blitzer-Strafe', q: 'Das Blitzerfoto ist das beste Foto, das es von mir gibt.', item: '4 km/h zu schnell, 1x Foto (Lächeln: perfekt, Frisur: nein)' },
+  { name: 'Roaming-Rechnung', q: 'Mein Handy war mit im Urlaub. Es hatte mehr Spaß als ich.', item: 'App-Update auf dem Kreuzfahrtschiff: 4,2 GB per Satellit' },
+  { name: 'App-Store-Rechnung', q: 'Mein Neffe hatte "nur kurz" mein Handy.', item: '312x Diamanten-Truhe, 1x goldener Hut für ein Pixel-Schaf' },
   { name: 'Bücherei-Mahnung', q: 'Das Buch hieß "Pünktlich sein". Überfällig seit 1998.', item: '1x "Pünktlich sein", 9.862 Tage zu spät' },
-  { name: 'Like-Steuer', q: 'Mein Foto vom Toast hat 3 Likes. Das ist jetzt steuerpflichtig.', item: 'Toast (leicht verbrannt), 3 Likes, 1 Herz von Oma' },
-  { name: 'Katzen-Bestellung', q: 'Mr. Whiskers hat online bestellt. 40 Kartons. Er wollte nur die Kartons.', item: '40x Karton (leer), 1x Laserpointer (Express)' },
-  { name: 'Gefahrenzulage', q: 'Die Sparschweine haben eine Gewerkschaft gegründet.', item: 'Pro Hammerschlag 1 Cent, Trostkuscheln extra' },
-  { name: 'Trinkgeld-Pauschale', q: 'Der Gerichtsvollzieher will Trinkgeld. Für die Mühe.', item: 'Service: freundliches Pfänden, 5 Sterne' },
-  { name: 'RGB-Stuhl-Rate', q: 'Er hat RGB. Er macht mich nicht schneller. Aber er hat RGB.', item: 'RGB-Paket, Lordosenstütze (ungenutzt)' },
-  { name: 'Schnarch-Entschädigung', q: 'Mein Nachbar hat mich verklagt. Ich schnarche durch zwei Wände.', item: 'Lärm: 94 dB, Oktave: Walgesang' },
+  { name: 'Schwarzfahr-Strafe', q: 'Der Automat nahm keine Sparschweine. Der Kontrolleur auch nicht.', item: 'Erhöhtes Beförderungsentgelt, 1x Sparschwein (beschlagnahmt)' },
+  { name: 'Tierklinik-Rechnung', q: 'Mr. Whiskers hat einen Legostein gegessen. Schon wieder.', item: 'Röntgen: 1 Katze, darin 1 Legostein (rot, 2x4)' },
+  { name: 'Online-Bestellung', q: 'Mr. Whiskers hat online bestellt. 40 Kartons. Er wollte nur die Kartons.', item: '40x Karton (leer), 1x Laserpointer (Express)' },
+  { name: 'Ruhestörungs-Strafe', q: 'Karaoke um drei Uhr nachts. "Atemlos". Elf Mal.', item: 'Lärm: 94 dB, Tonlage: falsch, Zugabe: unerwünscht' },
+  { name: 'Hundesteuer', q: 'Ich habe keinen Hund. Nur einen sehr großen Kater. Das Amt sieht das anders.', item: 'Hund (1x, laut Amt), Kater (beleidigt)' },
+  { name: 'Taubenfutter-Strafe', q: 'Es war nur EIN Croissant. Für 300 Tauben.', item: 'Fütterungsverbot missachtet, Taubenaufstand (Mitschuld)' },
+  { name: 'Minibar-Rechnung', q: 'Ich hab die Erdnüsse nur hochgehoben. Die Minibar hat einen Sensor.', item: '1x Erdnüsse (angehoben, nicht gegessen), 1x Wasser (still, aber teuer)' },
+  { name: 'Parkhaus-Rechnung', q: 'Ich habe das Parkticket verloren. Tagespauschale seit 2019.', item: 'Verlorenes Ticket, 1.927 Tage, 1x Auto (eingestaubt)' },
+  { name: 'Klempner-Rechnung', q: 'Er hat in den Abfluss geschaut und "Hmm" gesagt.', item: '1x "Hmm", Anfahrt, Kaffee (mein eigener, trotzdem berechnet)' },
+  { name: 'Abo-Rechnung', q: 'Ich hab den Gratismonat getestet. Vor drei Jahren.', item: 'Fitness-App Premium: 36 Monate, Liegestütze: 0' },
+  { name: 'Inkasso-Forderung', q: 'Eine Mahnung wegen einer Mahnung wegen einer Mahnung.', item: 'Hauptforderung: 3 $, Mahngebühren: der ganze Rest' },
+  { name: 'Lieferdienst-Rechnung', q: 'Pizza um drei Uhr nachts. Sechs Mal diese Woche. Der Fahrer kennt meinen Namen.', item: '6x Pizza Hawaii, Trinkgeld: emotional' },
+  { name: 'Schornsteinfeger-Rechnung', q: 'Ich habe keinen Kamin. Er kam trotzdem. Bringt ja Glück.', item: 'Kehren (nichts), Messen (Luft), Glück (inklusive)' },
+  { name: 'Gaming-Stuhl-Rate', q: 'Er hat RGB. Er macht mich nicht schneller. Aber er hat RGB.', item: 'RGB-Paket, Lordosenstütze (ungenutzt)' },
+  { name: 'Streaming-Zusatzgebühr', q: 'Meine Ex nutzt noch mein Konto. Und ihr Neuer. Und seine Mutter.', item: "Profile: 'Bill', 'NICHT Bill', 'Bill weint'" },
+  { name: 'Unterhaltszahlung', q: 'Ich zahle Unterhalt für ein Sparschwein. Es war... kompliziert.', item: 'Für: 1 Ferkel (rosa), Taschengeld inkl. Münzschlitz' },
+  { name: 'Umzugsrechnung', q: 'Die Umzugsfirma hat mein Klavier getragen. Ins falsche Haus.', item: '1x Klavier (Nachbarhaus), 14x Karton "Verschiedenes"' },
 ];
 const FUNNY_CHANCE = 0.3;
 function _funnySeed() { return typeof P !== 'undefined' && P ? P.cycle : 1; }
@@ -361,6 +471,11 @@ function billInfo(i) {
     acct: String(1000 + ((i * 7919) % 9000)),
   };
 }
+// paying before the due day earns gems ("Skonto"), otherwise the unused days would just be lost
+function earlyPayGems(billIdx, daysLeft) {
+  if (daysLeft <= 0) return 0;
+  return Math.max(1, Math.round(daysLeft * (2 + billIdx * 0.8) * (1 + stats().earlyPay)));
+}
 
 // ---------------- PRESTIGE: RINGS & BRACELETS ----------------
 const RINGS = [
@@ -370,7 +485,7 @@ const RINGS = [
   { id: 'fistring', name: 'Schlagring', desc: 'Nicht ganz legal.', stat: 'Grundschaden', val: '+3, +20%', cost: 8, band: '#9aa4b0', a: (s) => { s.dmgFlat += 3; s.dmgPct += 0.2; } },
   { id: 'snake', name: 'Schlangenring', desc: 'Flink wie eine Natter.', stat: 'Schlagtempo', val: '+20%', cost: 9, band: '#6aa04a', gem: '#e83a4a', a: (s) => (s.speedPct += 0.2) },
   { id: 'heir', name: 'Erbstück', desc: 'Von Opa Bill senior.', stat: 'Startkapital', val: '$150', cost: 9, band: '#d6874a', gem: '#3ad06a', a: (s) => (s.startMoney += 150) },
-  { id: 'ruby', name: 'Rubinring', desc: 'Funkelt verdächtig.', stat: 'Edelsteine', val: 'x2', cost: 10, band: '#f5c542', gem: '#e83a4a', a: (s) => (s.gemMore *= 2) },
+  { id: 'ruby', name: 'Rubinring', desc: 'Funkelt verdächtig.', stat: 'Diamanten', val: 'x2', cost: 10, band: '#f5c542', gem: '#e83a4a', a: (s) => (s.gemMore *= 2) },
   { id: 'clover', name: 'Kleeblattring', desc: 'Glück ist eine Entscheidung.', stat: 'Glück', val: 'x1.5', cost: 14, band: '#c8d0da', gem: '#3ad06a', a: (s) => (s.luck *= 1.5) },
   { id: 'giant', name: 'Riesenring', desc: 'Passt eigentlich nur Riesen.', stat: 'Radius', val: '+30%', cost: 15, band: '#7a8490', gem: '#b05ae8', a: (s) => (s.radiusPct += 0.3) },
   { id: 'coffeering', name: 'Kaffeering', desc: 'Riecht nach Espresso.', stat: 'Regeneration', val: '+0.3/s', cost: 16, band: '#8a5a3a', gem: '#3a2014', a: (s) => (s.regen += 0.3) },
@@ -388,7 +503,7 @@ const RINGS = [
 const BRACELETS = [
   { id: 'greed', name: 'Armband der Gier', desc: 'Mehr. Immer mehr.', stat: 'Münzwert', val: 'x2', cost: 25, band: '#f5c542', gem: '#3ad06a', a: (s) => (s.coinMore *= 2) },
   { id: 'titan', name: 'Titan-Armband', desc: 'Schwer, aber mächtig.', stat: 'Schaden / Ausdauer', val: 'x1.6 / +25', cost: 25, band: '#9aa4b0', gem: '#4a4a58', a: (s) => { s.dmgMore *= 1.6; s.staminaFlat += 25; } },
-  { id: 'lucky', name: 'Glücksarmband', desc: 'Klimpert glücklich.', stat: 'Seltene Münzen / Edelst.', val: 'x3 / x2', cost: 40, band: '#c8d0da', gem: '#3ad06a', a: (s) => { s.rareMore *= 3; s.gemMore *= 2; } },
+  { id: 'lucky', name: 'Glücksarmband', desc: 'Klimpert glücklich.', stat: 'Seltene Münzen / Diam.', val: 'x3 / x2', cost: 40, band: '#c8d0da', gem: '#3ad06a', a: (s) => { s.rareMore *= 3; s.gemMore *= 2; } },
   { id: 'midas', name: 'Midas-Armband', desc: 'Alles wird zu Gold.', stat: 'Goldschweine / Jackpot', val: 'x3 / +100%', cost: 50, band: '#f5c542', gem: '#ff9a3a', a: (s) => { s.goldenWeight += 2; s.goldenMore *= 3; s.jackpotMult += 10; } },
   { id: 'chronos', name: 'Chronos-Armband', desc: 'Zeit ist Geld.', stat: 'Frist / Tempo', val: '+1 Tag / +15%', cost: 60, band: '#b8f0ec', gem: '#b05ae8', a: (s) => { s.dueBonus += 1; s.speedPct += 0.15; } },
 ];
@@ -427,7 +542,7 @@ const RARE_COINS = [
 ];
 const RARE_BY_ID = Object.fromEntries(RARE_COINS.map((c) => [c.id, c]));
 const RARE_WEIGHTS = { 1: 60, 2: 28, 3: 10, 4: 2.5 };
-const BONUS_NAMES = { coin: 'Münzwert', dmg: 'Schaden', crit: 'Krit-Chance', luck: 'Glück', gems: 'Edelsteine', stamina: 'Ausdauer', speed: 'Tempo' };
+const BONUS_NAMES = { coin: 'Münzwert', dmg: 'Schaden', crit: 'Krit-Chance', luck: 'Glück', gems: 'Diamanten', stamina: 'Ausdauer', speed: 'Tempo' };
 function bonusText(b) {
   const [k, v] = b;
   if (k === 'stamina') return `+${v} ${BONUS_NAMES[k]}`;
@@ -468,14 +583,18 @@ const ACHIEVEMENTS = [
   { id: 'hammer3', name: 'Werkzeugkiste', desc: 'Besitze 3 Hämmer.', icon: 'hammer', check: (P) => [P.hammers.length, 3], reward: { gems: 10 } },
   { id: 'hammer8', name: 'Baumarkt-Profi', desc: 'Besitze 8 Hämmer.', icon: 'hammer', check: (P) => [P.hammers.length, 8], reward: { pp: 10 } },
   { id: 'hammerall', name: 'Hammerzeit', desc: 'Besitze alle Hämmer.', icon: 'crown', check: (P) => [P.hammers.length, HAMMERS.length], reward: { pp: 30 } },
-  { id: 'gems500', name: 'Schatzkammer', desc: 'Sammle insgesamt 500 Edelsteine.', icon: 'gem', check: (P) => [P.stats.gemsTotal, 500], reward: { pp: 8 } },
+  { id: 'gems500', name: 'Schatzkammer', desc: 'Sammle insgesamt 500 Diamanten.', icon: 'gem', check: (P) => [P.stats.gemsTotal, 500], reward: { pp: 8 } },
   { id: 'rings5', name: 'Herr der Ringe', desc: 'Besitze 5 Ringe.', icon: 'ring', check: (P) => [P.rings.length, 5], reward: { gems: 25 } },
   { id: 'escape', name: 'Die sind weg!', desc: 'Lass 10 Schweine entkommen.', icon: 'arrow', check: (P) => [P.stats.escaped, 10], reward: { gems: 5 } },
   { id: 'tired100', name: 'Muskelkater', desc: 'Spiele 100 Runs.', icon: 'dumbbell', check: (P) => [P.stats.runs, 100], reward: { pp: 10 } },
+  { id: 'early1', name: 'Musterschüler', desc: 'Bezahle eine Rechnung vor der Frist.', icon: 'percent', check: (P) => [P.stats.earlyPaid, 1], reward: { gems: 5 } },
+  { id: 'early10', name: 'Skonto-König', desc: 'Bezahle 10 Rechnungen vor der Frist.', icon: 'percent', check: (P) => [P.stats.earlyPaid, 10], reward: { pp: 5 } },
+  { id: 'gemtree10', name: 'Diamantschleifer', desc: 'Kaufe 10 Stufen im Diamanten-Skillbaum.', icon: 'gem', check: (P) => [Object.values(P.gemSkills || {}).reduce((a, b) => a + b, 0), 10], reward: { gems: 20 } },
+  { id: 'perkcards5', name: 'Kartensammler', desc: 'Schalte 5 Perk-Karten mit VP frei.', icon: 'card', check: (P) => [Object.keys(P.perkUnlocks || {}).length, 5], reward: { pp: 5 } },
 ];
 
 // ---------------- DAILY EVENTS ----------------
-// rolled for each new day; modify the final run stats
+// rolled for each new day; modify the final run stats. req: optional (P) => bool
 const EVENTS = [
   { id: 'sale', name: 'Schweine-Schlussverkauf', d: '+60% Spawnrate, +2 Schweine', icon: 'piggyPlus', color: '#f08ab0', a: (s) => { s.spawnRate *= 1.6; s.maxPigs += 2; } },
   { id: 'lucky', name: 'Glückstag', d: 'x3 Jackpots, x2 Raritäten', icon: 'clover', color: '#6fdc5a', a: (s) => { s.jackpotChance = Math.min(0.3, s.jackpotChance * 3); s.rareChance *= 2; } },
@@ -483,11 +602,27 @@ const EVENTS = [
   { id: 'goldfever', name: 'Goldfieber', d: 'Goldschweine tauchen auf!', icon: 'coins', color: '#ffd040', a: (s) => { s.goldenWeight += 3; } },
   { id: 'coffee', name: 'Kaffee-Lieferung', d: 'Überall Kaffeetassen', icon: 'coffee', color: '#c08a54', a: (s) => { s.coffee += 4; } },
   { id: 'storm', name: 'Gewitterfront', d: 'Blitze alle 2 Sekunden', icon: 'bolt', color: '#5ae0f0', a: (s) => { s.storm = s.storm ? Math.min(s.storm, 2) : 2; } },
-  { id: 'gems', name: 'Edelstein-Fund', d: 'x3 Edelsteinchance', icon: 'gem', color: '#ff9aa0', a: (s) => { s.gemChance = Math.min(0.8, s.gemChance * 3); } },
+  { id: 'gems', name: 'Diamanten-Fund', d: 'x3 Diamantenchance', icon: 'gem', color: '#ff9aa0', a: (s) => { s.gemChance = Math.min(0.8, s.gemChance * 3); } },
   { id: 'audit', name: 'Steuerprüfung', d: 'Finanzamt da! +80% Münzen', icon: 'calendar', color: '#c8b89a', a: (s) => { s.pigs = new Set(s.pigs); s.pigs.add('tax'); s.coinMult *= 1.8; } },
   { id: 'piglets', name: 'Ferkel-Invasion', d: 'Ferkel kommen in Rudeln', icon: 'pig', color: '#f9b2c4', a: (s) => { s.pigletPacks = true; s.spawnRate *= 1.3; } },
   { id: 'focus', name: 'Konzentrierter Tag', d: '+25% Krit-Chance', icon: 'crit', color: '#ffe070', a: (s) => { s.crit = Math.min(1, s.crit + 0.25); } },
   { id: 'gym', name: 'Gut geschlafen', d: '+40% Ausdauer', icon: 'heart', color: '#ff8a8a', a: (s) => { s.maxStamina = Math.round(s.maxStamina * 1.4); } },
+  // ---- themed days ----
+  { id: 'pigletflood', name: 'Ferkel-Flut', d: 'Nur Ferkel - aber MASSENHAFT!', icon: 'pig', color: '#ffb0c8', a: (s) => { s.onlyPigs = ['piglet']; s.calm = true; s.maxPigs = Math.min(30, s.maxPigs * 2 + 10); s.spawnRate *= 5; s.pigValue *= 1.6; } },
+  { id: 'heavyweights', name: 'Schwergewichte', d: 'x3 Leben, x3 Münzen, weniger Schweine', icon: 'dumbbell', color: '#d8a070', a: (s) => { s.pigHp *= 3; s.pigValue *= 3.2; s.maxPigs = Math.max(3, s.maxPigs - 2); } },
+  { id: 'monday', name: 'Montagmorgen', d: 'Alle Schweine sind müde: halbes Tempo', icon: 'hourglass', color: '#9aa8c8', a: (s) => { s.pigSpeed *= 0.5; } },
+  { id: 'sugar', name: 'Zuckerschock', d: 'Schweine doppelt so schnell, +50% Münzen', icon: 'speed', color: '#ff7ad0', a: (s) => { s.pigSpeed *= 2; s.coinMult *= 1.5; } },
+  { id: 'circus', name: 'Zirkus in der Stadt', d: 'Nur Clownschweine - HUP HUP!', icon: 'star', color: '#ff4a8a', req: (P) => P.C.billIdx >= 3, a: (s) => { s.onlyPigs = ['clown']; s.pigValue *= 0.45; s.maxPigs += 1; } },
+  { id: 'ghosts', name: 'Geisterstunde', d: 'Nur Geisterschweine. Buuuh!', icon: 'eye', color: '#c8d8ff', req: (P) => P.C.billIdx >= 4, a: (s) => { s.onlyPigs = ['ghost']; s.pigValue *= 0.5; } },
+  { id: 'newyear', name: 'Silvester', d: 'Jedes Schwein explodiert beim Zerbrechen!', icon: 'bomb', color: '#ffb030', a: (s) => { s.bombChance = 1; } },
+  { id: 'happyhour', name: 'Happy Hour', d: '+1s Combo-Fenster, +2% Münzen pro Combo', icon: 'chain', color: '#7ad0ff', a: (s) => { s.comboWindow += 1; s.comboCoin += 0.02; } },
+  { id: 'payday', name: 'Zahltag', d: '+30% Feierabend-Bonus', icon: 'bag', color: '#9af08a', a: (s) => { s.endBonus += 0.3; } },
+  { id: 'sore', name: 'Muskelkater', d: '-30% Ausdauer, aber x2 Schaden', icon: 'fist', color: '#e8603e', a: (s) => { s.maxStamina = Math.round(s.maxStamina * 0.7); s.damage *= 2; } },
+  { id: 'cold', name: 'Kälteeinbruch', d: 'Jeder Schlag baut viel Frost auf', icon: 'snow', color: '#bfe8ff', a: (s) => { s.freeze += 0.08; } },
+  { id: 'lottery', name: 'Lotto-Jackpot', d: 'Überall liegen Lottoscheine', icon: 'card', color: '#ffe070', a: (s) => { s.lotteryMult *= 10; } },
+  { id: 'raid', name: 'Razzia', d: 'Schwarzgeld-Schweine überall - und sie bleiben!', icon: 'lock', color: '#8a9ab0', req: (P) => P.C.billIdx >= 6, a: (s) => { s.pigs = new Set(s.pigs); s.pigs.add('mafia'); s.mafiaBoost = Math.max(2, s.mafiaBoost); s.pigValue *= 0.7; } },
+  { id: 'officeparty', name: 'Betriebsfeier', d: 'Partyschweine überall, Party hält länger', icon: 'drink', color: '#ff8ad0', a: (s) => { s.pigs = new Set(s.pigs); s.pigs.add('party'); s.partyBoost = 3; s.buffDur += 0.5; } },
+  { id: 'rockfall', name: 'Steinschlag', d: 'Steinregen verfügbar, halbe Abklingzeit', icon: 'rock', color: '#b0a08c', a: (s) => { s.stoneRain = true; s.stoneCD = Math.max(3, s.stoneCD * 0.5); } },
 ];
 const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 
