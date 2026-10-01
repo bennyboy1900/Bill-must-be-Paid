@@ -173,30 +173,49 @@ const UI = (() => {
   function setToastMode(m) { toastMode = m; }
   function drawToasts(ctx, dt) {
     const left = toastMode === 'left';
-    let y = left ? 52 : H - 70;
-    const maxN = left ? 3 : 4;
+    let y = left ? 40 : H - 70;
+    const maxN = left ? 4 : 4;
     while (toasts.length > maxN) toasts.shift();
     for (let i = 0; i < toasts.length; i++) {
       const t = toasts[i];
       t.t += dt;
       const k = t.t < 0.25 ? Ease.outBack(t.t / 0.25) : t.t > t.life - 0.3 ? 1 - Ease.inQuad((t.t - (t.life - 0.3)) / 0.3) : 1;
-      const w = Math.max(left ? 120 : 150, Math.max(Font.measure(t.title), Font.measure(t.text || '')) + (t.icon ? 32 : 14));
-      const x = left ? Math.round(8 - (1 - clamp(k, 0, 1)) * (w + 10)) : Math.round(W / 2 - w / 2);
-      const yy = left ? y : Math.round(y + (1 - k) * 40);
-      ctx.save();
-      ctx.globalAlpha = clamp(k, 0, 1) * (left ? 0.92 : 1);
-      panel(ctx, x, yy, w, 32, { fill: '#1a110d', border: t.color || T.gold, glow: true });
-      if (t.icon) {
-        const ic = t.icon;
-        const sc = Math.min(1, 20 / ic.width, 22 / ic.height);
-        const iw = ic.width * sc, ih = ic.height * sc;
-        ctx.drawImage(ic, Math.round(x + 15 - iw / 2), Math.round(yy + 16 - ih / 2), iw, ih);
+      if (left) {
+        // compact card in the left column next to the box
+        const w = ARENA.x0 - 12;
+        const lines = Font.wrap(t.text || '', w - 8);
+        const h = 24 + lines.length * 10;
+        const x = Math.round(6 - (1 - clamp(k, 0, 1)) * (w + 10));
+        ctx.save();
+        ctx.globalAlpha = clamp(k, 0, 1);
+        panel(ctx, x, y, w, h, { fill: '#1a110d', border: t.color || T.gold, shadow: false });
+        if (t.icon) {
+          const ic = t.icon, sc = Math.min(1, 14 / ic.width, 14 / ic.height);
+          ctx.drawImage(ic, Math.round(x + 5), Math.round(y + 4), ic.width * sc, ic.height * sc);
+        }
+        const tt = Font.wrap(t.title, w - 26)[0];
+        Font.draw(ctx, tt, x + (t.icon ? 22 : 6), y + 6, { color: t.color || T.goldL, shadow: null });
+        lines.forEach((l, j) => Font.draw(ctx, l, x + 5, y + 18 + j * 10, { color: T.text, shadow: null }));
+        ctx.restore();
+        y += (h + 4) * clamp(k, 0, 1);
+      } else {
+        const w = Math.max(150, Math.max(Font.measure(t.title), Font.measure(t.text || '')) + (t.icon ? 32 : 14));
+        const x = Math.round(W / 2 - w / 2);
+        const yy = Math.round(y + (1 - k) * 40);
+        ctx.save();
+        ctx.globalAlpha = clamp(k, 0, 1);
+        panel(ctx, x, yy, w, 32, { fill: '#1a110d', border: t.color || T.gold, glow: true });
+        if (t.icon) {
+          const ic = t.icon;
+          const sc = Math.min(1, 20 / ic.width, 22 / ic.height);
+          ctx.drawImage(ic, Math.round(x + 15 - (ic.width * sc) / 2), Math.round(yy + 16 - (ic.height * sc) / 2), ic.width * sc, ic.height * sc);
+        }
+        const tx = x + (t.icon ? 28 : 8);
+        Font.draw(ctx, t.title, tx, yy + 6, { color: t.color || T.goldL });
+        if (t.text) Font.draw(ctx, t.text, tx, yy + 18, { color: T.text });
+        ctx.restore();
+        y -= 36 * clamp(k, 0, 1);
       }
-      const tx = x + (t.icon ? 28 : 8);
-      Font.draw(ctx, t.title, tx, yy + 6, { color: t.color || T.goldL });
-      if (t.text) Font.draw(ctx, t.text, tx, yy + 18, { color: T.text });
-      ctx.restore();
-      y += (left ? 36 : -36) * clamp(k, 0, 1);
       if (t.t > t.life) { toasts.splice(i, 1); i--; }
     }
   }

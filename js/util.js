@@ -3,6 +3,9 @@
 // ============================================================
 const TAU = Math.PI * 2;
 const W = 640, H = 360; // internal pixel resolution
+// the wooden box in the middle of the desk where the piggies live
+const ARENA = { x0: 106, y0: 40, x1: 534, y1: 352, rim: 7, front: 9 };
+const FLOOR = { x0: ARENA.x0 + ARENA.rim, y0: ARENA.y0 + ARENA.rim, x1: ARENA.x1 - ARENA.rim, y1: ARENA.y1 - ARENA.front - ARENA.rim };
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;

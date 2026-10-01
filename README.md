@@ -35,7 +35,7 @@ npx serve .
 
 ## 🧾 Spielprinzip
 
-1. **Sparschweine zerschlagen** – Jeder Schlag kostet Ausdauer. Wenn deine Hand müde ist, ist Feierabend.
+1. **Sparschweine zerschlagen** – In der Holzkiste auf Bills Schreibtisch. Jeder Schlag kostet Ausdauer. Wenn deine Hand müde ist, ist Feierabend.
 2. **Rechnungen bezahlen** – Jede Rechnung hat eine Frist in Tagen (1 Run = 1 Tag). Verpasst du sie: **Bankrott**.
 3. **Perks wählen** – Nach jeder bezahlten Rechnung: Wähle 1 von 3 Karten (Gewöhnlich / Selten / Episch).
 4. **Skillbaum** – Über 90 Knoten in 10 Pfaden: Griffkraft, Handgelenk, Steinregen, Elektro, Frost, Glück, Gier, Schweinezucht, Fitnessstudio, Koffein.
@@ -52,6 +52,7 @@ npx serve .
 - **33 Perks**, **20 Ringe + 5 Armbänder**
 - **24 seltene Sammelmünzen** mit dauerhaften Boni und Set-Boni im Münzalbum
 - **Schweinedex**, **35 Erfolge**, Statistiken
+- **Gerichtsvollzieher-Boss** am letzten Tag vor der Fälligkeit und **11 Tagesereignisse** (Hitzewelle, Glückstag, Gewitter, Steuerprüfung …)
 - Jackpots, Goldrausch, Raserei, Party- & Disco-Buffs, Lottoscheine, Kaffee & Energy-Drinks
 - Bill mit 9 Gesichtsausdrücken, Sprechblasen und über 60 Sprüchen
 - Juice: Hitstop, Screenshake, Squash-&-Stretch-Federphysik, Sprite-Bruchstücke, Münzregen, Schwungspuren

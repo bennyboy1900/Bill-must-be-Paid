@@ -1888,6 +1888,113 @@ const Art = (() => {
     });
   }
 
+  // desk (dimmed) + wooden box with felt floor => the playfield
+  function arena() {
+    return memo('arena', () => {
+      const c = makeCanvas(W, H);
+      const x = c.getContext('2d');
+      x.drawImage(table(), 0, 0);
+      // dim the desk so the box pops
+      x.fillStyle = 'rgba(8,4,2,0.62)';
+      x.fillRect(0, 0, W, H);
+      // calmer side columns for the HUD
+      for (const [cx0, cx1] of [[0, ARENA.x0 - 4], [ARENA.x1 + 4, W]]) {
+        const g = x.createLinearGradient(cx0 < 10 ? cx1 : cx0, 0, cx0 < 10 ? cx0 : cx1, 0);
+        g.addColorStop(0, 'rgba(8,4,2,0.25)'); g.addColorStop(1, 'rgba(8,4,2,0.6)');
+        x.fillStyle = g; x.fillRect(cx0, 0, cx1 - cx0, H);
+      }
+      const A = ARENA, F = FLOOR;
+      // drop shadow of the box
+      x.fillStyle = 'rgba(0,0,0,0.45)';
+      x.fillRect(A.x0 + 4, A.y0 + 6, A.x1 - A.x0, A.y1 - A.y0);
+      x.fillStyle = 'rgba(0,0,0,0.25)';
+      x.fillRect(A.x0 - 2, A.y0 + 2, A.x1 - A.x0 + 10, A.y1 - A.y0 + 8);
+      const id = x.getImageData(0, 0, W, H);
+      const d = id.data;
+      const put = (px, py, col) => { const o = (py * W + px) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255; };
+      const FELT = ['#16301f', '#1b3a26', '#20442c', '#254e32', '#2b5838', '#32633f', '#3a7048'].map(hexToRgb);
+      const WOOD = ['#3a1e0e', '#4e2a14', '#64361a', '#7a4422', '#90542a', '#a66634', '#ba783e', '#cc8a4a'].map(hexToRgb);
+      // felt floor
+      for (let py = F.y0; py < F.y1; py++)
+        for (let px = F.x0; px < F.x1; px++) {
+          let v = 0.55 + (vnoise(px / 3, py / 3, 21) - 0.5) * 0.18 + (hash2(px, py, 4) - 0.5) * 0.08;
+          const lx = (px - 200) / 360, ly = (py - 60) / 300;
+          v += Math.max(0, 1 - Math.sqrt(lx * lx + ly * ly)) * 0.35 - 0.12;
+          // inner shadow from the rims (light comes from top-left)
+          const dt = py - F.y0, dl = px - F.x0, dr = F.x1 - 1 - px, db = F.y1 - 1 - py;
+          if (dt < 10) v -= (10 - dt) * 0.045;
+          if (dl < 7) v -= (7 - dl) * 0.04;
+          if (dr < 3) v -= (3 - dr) * 0.03;
+          if (db < 2) v -= 0.05;
+          // stitched border
+          const inset = 6;
+          const onLine = (dt === inset || db === inset) && dl >= inset && dr >= inset || (dl === inset || dr === inset) && dt >= inset && db >= inset;
+          if (onLine && (px + py) % 4 < 2) v += 0.28;
+          const fi = v * (FELT.length - 1) + (BAYER4[py & 3][px & 3] - 0.5) * 0.9;
+          put(px, py, FELT[clamp(Math.round(fi), 0, FELT.length - 1)]);
+        }
+      // wooden rims
+      const wood = (px, py, base, along) => {
+        const g = vnoise(along / 26, (along === px ? py : px) / 1.6, 13) * 0.5 + vnoise(along / 6, (along === px ? py : px) / 0.8, 14) * 0.15;
+        const fi = (base + (g - 0.32) * 0.45) * (WOOD.length - 1) + (BAYER4[py & 3][px & 3] - 0.5) * 0.8;
+        put(px, py, WOOD[clamp(Math.round(fi), 0, WOOD.length - 1)]);
+      };
+      for (let py = A.y0; py < A.y1; py++)
+        for (let px = A.x0; px < A.x1; px++) {
+          if (px >= F.x0 && px < F.x1 && py >= F.y0 && py < F.y1) continue;
+          const frontFace = py >= A.y1 - A.front;
+          if (frontFace) {
+            // front face of the box: darker, vertical shading
+            const k = (py - (A.y1 - A.front)) / A.front;
+            wood(px, py, 0.5 - k * 0.25, px);
+          } else {
+            const top = py < F.y0, bottom = py >= F.y1;
+            const horiz = top || bottom;
+            let base = 0.78;
+            if (top) base = 0.84 - (py - A.y0) * 0.01;
+            else if (bottom) base = 0.9;
+            else if (px < F.x0) base = 0.82; else base = 0.66;
+            wood(px, py, base, horiz ? px : py);
+          }
+        }
+      x.putImageData(id, 0, 0);
+      // edges & highlights
+      const ln = (x0, y0, w, h, col) => { x.fillStyle = col; x.fillRect(x0, y0, w, h); };
+      ln(A.x0, A.y0, A.x1 - A.x0, 1, '#e0a060');
+      ln(A.x0, A.y0, 1, A.y1 - A.y0 - A.front, '#d89858');
+      ln(A.x0 - 1, A.y0 - 1, A.x1 - A.x0 + 2, 1, '#1a0c06');
+      ln(A.x0 - 1, A.y0, 1, A.y1 - A.y0, '#1a0c06');
+      ln(A.x1, A.y0, 1, A.y1 - A.y0, '#1a0c06');
+      ln(A.x0 - 1, A.y1, A.x1 - A.x0 + 2, 1, '#1a0c06');
+      ln(A.x0, A.y1 - A.front, A.x1 - A.x0, 1, '#e8b070');
+      ln(A.x0, A.y1 - A.front + 1, A.x1 - A.x0, 1, '#5a2e14');
+      // inner lip
+      ln(F.x0 - 1, F.y0 - 1, F.x1 - F.x0 + 2, 1, '#2a140a');
+      ln(F.x0 - 1, F.y0 - 1, 1, F.y1 - F.y0 + 2, '#2a140a');
+      ln(F.x1, F.y0 - 1, 1, F.y1 - F.y0 + 2, '#c88a4a');
+      ln(F.x0 - 1, F.y1, F.x1 - F.x0 + 2, 1, '#d89a58');
+      // plank joints on the front face
+      for (let px = A.x0 + 70; px < A.x1 - 20; px += 92) ln(px, A.y1 - A.front + 2, 1, A.front - 3, '#3a1e0e');
+      // brass corner plates with rivets
+      const corner = (cx, cy, fx, fy) => {
+        for (let i = 0; i < 12; i++) for (let j = 0; j < 12; j++) {
+          if (i > 4 && j > 4) continue;
+          const px = cx + i * fx, py = cy + j * fy;
+          x.fillStyle = (i === 0 || j === 0) ? '#fff0a0' : (i + j) % 7 === 0 ? '#c08a28' : '#e0b040';
+          x.fillRect(px, py, 1, 1);
+        }
+        for (const [ri, rj] of [[2, 2], [9, 2], [2, 9]]) { x.fillStyle = '#7a5418'; x.fillRect(cx + ri * fx - (fx < 0 ? 1 : 0), cy + rj * fy - (fy < 0 ? 1 : 0), 2, 2); x.fillStyle = '#fff4c0'; x.fillRect(cx + ri * fx, cy + rj * fy, 1, 1); }
+      };
+      corner(A.x0, A.y0, 1, 1); corner(A.x1 - 1, A.y0, -1, 1);
+      corner(A.x0, A.y1 - 1, 1, -1); corner(A.x1 - 1, A.y1 - 1, -1, -1);
+      // brass name plate on the front
+      const pw = 64, px0 = Math.round((A.x0 + A.x1) / 2 - pw / 2), py0 = A.y1 - A.front + 1;
+      ln(px0, py0, pw, A.front - 2, '#c89a30'); ln(px0, py0, pw, 1, '#fff0a0'); ln(px0, py0 + A.front - 3, pw, 1, '#7a5418');
+      Font.draw(x, 'SPARKASSE', (A.x0 + A.x1) / 2, py0, { align: 'center', color: '#5a3a10', shadow: null });
+      return c;
+    });
+  }
+
   function drawProps(x) {
     const shadow = (px, py, w, h) => { x.fillStyle = 'rgba(10,4,2,0.45)'; x.fillRect(px + 3, py + 3, w, h); };
     // --- stacked papers / overdue notices bottom-left
@@ -1991,7 +2098,7 @@ const Art = (() => {
 
   return {
     PG, icon, iconGray, iconWhite, ICONS, coin, gem, cash, rareCoin, pig, pigTint, pigShardColors, pigChunks, PIG_STYLES, PIG_FRAMES, PIG_SCALE,
-    hammer, hammerRot, hammerIcon, HAMMER_STYLES, coffeeCup, energyCan, lottery, stone, sparkle, ring, bracelet, bill, table,
+    hammer, hammerRot, hammerIcon, HAMMER_STYLES, coffeeCup, energyCan, lottery, stone, sparkle, ring, bracelet, bill, table, arena,
     METALS, GEMS, tinted,
     tint: (key, canvas, mode) => memo('tint:' + key + ':' + mode, () => tinted(canvas, mode)),
   };

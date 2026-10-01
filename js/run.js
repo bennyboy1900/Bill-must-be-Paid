@@ -1,10 +1,11 @@
 // ============================================================
 //  RUN SCENE: smashing piggies
 // ============================================================
-const BOUNDS = { x0: 44, x1: 596, y0: 100, y1: 340 };
+// pig feet stay inside the felt floor of the box
+const BOUNDS = { x0: FLOOR.x0 + 22, x1: FLOOR.x1 - 22, y0: FLOOR.y0 + 34, y1: FLOOR.y1 - 3 };
 const HS = 2; // hammer draw scale
-const MONEY_POS = { x: W - 66, y: 15 };
-const GEM_POS = { x: W - 94, y: 36 };
+const MONEY_POS = { x: W - 64, y: 16 };
+const GEM_POS = { x: W - 80, y: 58 };
 const sp = (v) => Math.round(v * Game.k) / Game.k; // sub-pixel snapping => smooth motion with crisp pixels
 
 // ------------------------------------------------------------
@@ -184,10 +185,13 @@ class Pig {
       }
     }
     if (this.leaving) {
+      // jump over the rim of the box
+      if (!this.hopped && (this.x < BOUNDS.x0 + 4 || this.x > BOUNDS.x1 - 4) && this.z === 0) { this.hopped = true; this.vz = 260; this.kick(-6); Sound.play('plop'); }
       if (this.x < -30 || this.x > W + 30) run.escaped(this);
     } else {
-      this.x = clamp(this.x, BOUNDS.x0, BOUNDS.x1);
-      this.y = clamp(this.y, BOUNDS.y0, BOUNDS.y1);
+      // bounce softly off the walls
+      if (this.x < BOUNDS.x0 || this.x > BOUNDS.x1) { this.kx = -this.kx * 0.5; this.x = clamp(this.x, BOUNDS.x0, BOUNDS.x1); }
+      if (this.y < BOUNDS.y0 || this.y > BOUNDS.y1) { this.ky = -this.ky * 0.5; this.y = clamp(this.y, BOUNDS.y0, BOUNDS.y1); }
     }
     // blinking
     this.blinkT -= dt;
@@ -617,8 +621,10 @@ class Loot {
     if (this.state === 'air') {
       this.vz -= 950 * dt;
       this.x += this.vx * dt; this.y += this.vy * dt; this.z += this.vz * dt;
-      if (this.y < BOUNDS.y0 - 20 || this.y > H - 6) this.vy *= -0.5;
-      if (this.x < 10 || this.x > W - 10) this.vx *= -0.5;
+      if (this.y < FLOOR.y0 + 4) { this.y = FLOOR.y0 + 4; this.vy = Math.abs(this.vy) * 0.5; }
+      if (this.y > FLOOR.y1 - 2) { this.y = FLOOR.y1 - 2; this.vy = -Math.abs(this.vy) * 0.5; }
+      if (this.x < FLOOR.x0 + 4) { this.x = FLOOR.x0 + 4; this.vx = Math.abs(this.vx) * 0.5; }
+      if (this.x > FLOOR.x1 - 4) { this.x = FLOOR.x1 - 4; this.vx = -Math.abs(this.vx) * 0.5; }
       if (this.z <= 0) {
         this.z = 0;
         if (this.vz < -80) { this.vz = -this.vz * 0.42; this.vx *= 0.6; this.vy *= 0.6; if (this.kind !== 'cash') Sound.play('tick', null, 0.03); }
@@ -981,9 +987,8 @@ class RunScene {
 
   overHud() {
     const x = Input.x, y = Input.y;
-    if (y < 26 && (x < 210 || x > W - 150)) return true;
-    if (this.S.stoneRain && x < 48 && y > H - 52) return true;
-    if (x > W - 30 && y < 50 && x < W) return false;
+    if (y < 32 && x > W - 150) return true;
+    if (this.S.stoneRain && x < ARENA.x0 - 6 && y > H - 44) return true;
     return false;
   }
 
@@ -1408,7 +1413,7 @@ class RunScene {
       this.stones.push(new Stone(this, best ? best.x : W / 2, best ? best.y : H / 2 + 40, S.stones * 0.09 + 0.3, true));
     }
     Sound.play('whistle');
-    this.text(28, H - 60, 'STEINREGEN!', '#d8c8b0', { big: true, life: 0.9 });
+    this.text(52, H - 64, 'STEINREGEN!', '#d8c8b0', { big: true, life: 0.9 });
   }
   stoneImpact(s) {
     const S = this.S;
@@ -1526,14 +1531,14 @@ class RunScene {
     this.camY = (Math.random() - 0.5) * this.shakeAmt * 2;
     ctx.save();
     ctx.translate(this.camX, this.camY);
-    ctx.drawImage(Art.table(), 0, 0);
+    ctx.drawImage(Art.arena(), 0, 0);
     // disco lights
     if (this.discoT > 0) {
       for (let i = 0; i < 5; i++) {
         const a = this.time * 1.5 + i * 1.3;
         ctx.globalAlpha = 0.12 * Math.min(1, this.discoT);
         ctx.fillStyle = ['#ff5a8a', '#5ae0ff', '#ffe04a', '#7af07a', '#c07af0'][i];
-        ctx.beginPath(); ctx.ellipse(W / 2 + Math.cos(a) * 200, H / 2 + Math.sin(a * 1.3) * 100, 70, 40, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(W / 2 + Math.cos(a) * 150, H / 2 + Math.sin(a * 1.3) * 90, 60, 36, 0, 0, TAU); ctx.fill();
       }
       ctx.globalAlpha = 1;
     }
@@ -1565,7 +1570,7 @@ class RunScene {
     if (this.state === 'intro') this.drawIntro(ctx);
     if (this.tut && this.state === 'play') {
       const a = 0.6 + Math.sin(this.time * 5) * 0.4;
-      Font.draw(ctx, Input.isTouch ? 'Tippe & halte, um zuzuschlagen!' : 'Halte die Maustaste gedrückt, um zuzuschlagen!', W / 2, H - 26, { align: 'center', color: '#ffe9a8', shadow: 'outline', alpha: a });
+      Font.draw(ctx, Input.isTouch ? 'Tippe & halte, um zuzuschlagen!' : 'Halte die Maustaste gedrückt, um zuzuschlagen!', W / 2, FLOOR.y0 + 8, { align: 'center', color: '#ffe9a8', shadow: 'outline', alpha: a });
     }
     if (this.state === 'results') this.drawResults(ctx);
     if (this.paused) this.drawPause(ctx);
@@ -1651,97 +1656,116 @@ class RunScene {
 
   drawHud(ctx) {
     const S = this.S;
-    const hg = ctx.createLinearGradient(0, 0, 0, 48);
-    hg.addColorStop(0, 'rgba(10,5,3,0.75)'); hg.addColorStop(1, 'rgba(10,5,3,0)');
-    ctx.fillStyle = hg; ctx.fillRect(0, 0, W, 48);
-    // ---- stamina ----
+    const t = this.time;
+    // ================= top bar =================
+    ctx.fillStyle = '#140b08'; ctx.fillRect(0, 0, W, 32);
+    ctx.fillStyle = '#2a1a12'; ctx.fillRect(0, 30, W, 1);
+    ctx.fillStyle = '#6a4a2a'; ctx.fillRect(0, 31, W, 1);
+    // ---- stamina (left) ----
     const lowSt = this.stamina < this.maxStamina * 0.25;
-    Font.draw(ctx, 'Ausdauer:', 8, 6, { color: '#ffffff', shadow: 'outline' });
-    Font.draw(ctx, `${Math.max(0, Math.ceil(this.stamina))}/${this.maxStamina}`, 66, 6, { color: lowSt && Math.floor(this.time * 6) % 2 ? '#ff6a5a' : '#f2c66d', shadow: 'outline' });
-    const bw = 190;
-    UI.bar(ctx, 8, 18, bw, 6, this.dispStamina / this.maxStamina, lowSt ? '#e8503e' : '#f0b030', { segments: 10 });
+    const blink = lowSt && Math.floor(t * 6) % 2;
+    ctx.drawImage(Art.icon('heart'), 8, 6 + (blink ? -1 : 0));
+    Font.draw(ctx, 'AUSDAUER', 24, 4, { color: '#a8927a', shadow: null });
+    const bx = 24, by = 15, bw = 150, bh = 10;
+    UI.bar(ctx, bx, by, bw, bh, this.dispStamina / this.maxStamina, lowSt ? '#e8503e' : '#f0b030', { segments: 10 });
     if (this.stamina < this.dispStamina - 0.5) {
       ctx.fillStyle = '#fff4c8';
-      const x0 = 8 + Math.round((bw * this.stamina) / this.maxStamina);
-      ctx.fillRect(x0, 18, Math.max(0, Math.round((bw * this.dispStamina) / this.maxStamina) - (x0 - 8)), 6);
+      const x0 = bx + Math.round((bw * Math.max(0, this.stamina)) / this.maxStamina);
+      ctx.fillRect(x0, by, Math.max(0, Math.round((bw * this.dispStamina) / this.maxStamina) - (x0 - bx)), bh);
     }
-    // buffs
-    let bx = 8;
-    const buff = (icon, t, max, col) => {
-      if (t <= 0) return;
-      ctx.drawImage(Art.icon(icon), bx, 30);
-      UI.bar(ctx, bx, 44, 12, 2, t / max, col);
-      bx += 16;
-    };
-    buff('star', this.partyT, 5, '#ff8ad0');
-    buff('star', this.discoT, 6, '#c07af0');
-    buff('fire', this.frenzyT, 6, '#ff5a3a');
-    buff('coffee', this.coffeeT, 5, '#c08a54');
-    buff('coins', this.goldRushT, 4, '#ffe070');
+    Font.draw(ctx, `${Math.max(0, Math.ceil(this.stamina))}/${this.maxStamina}`, bx + bw / 2, by + 1, { align: 'center', color: blink ? '#ffb0a0' : '#ffffff', shadow: 'outline' });
     if (S.freeze > 0) {
-      ctx.drawImage(Art.icon('snow'), 204, 14);
-      UI.bar(ctx, 218, 18, 28, 4, this.freezeMeter, '#9ae0ff');
+      ctx.drawImage(Art.icon('snow'), 180, 4);
+      UI.bar(ctx, 180, 19, 14, 5, this.freezeMeter, '#9ae0ff');
     }
-
-    // ---- money ----
+    // ---- day & bill (center) ----
+    const b = this.bill;
+    const last = P.C.dueDays <= 1;
+    const cx = W / 2 - 6;
+    Font.draw(ctx, `TAG ${P.C.day}`, cx - 4, 4, { align: 'right', color: '#ffd88a', bold: true, shadow: null });
+    Font.draw(ctx, '·  ' + (last ? 'letzter Tag!' : 'noch ' + P.C.dueDays + ' Tage'), cx + 4, 4, { color: last && P.C.money < b.amount ? (Math.floor(t * 3) % 2 ? '#ff7a5a' : '#ffb09a') : '#a8927a', shadow: null });
+    const pw = 210, pxb = cx - pw / 2, f = clamp(P.C.money / b.amount, 0, 1);
+    UI.bar(ctx, pxb, 15, pw, 10, f, f >= 1 ? '#4ab84a' : '#b8782a');
+    Font.draw(ctx, `${b.name}: ${money(P.C.money)} / ${money(b.amount)}`, cx, 16, { align: 'center', color: '#ffffff', shadow: 'outline' });
+    // ---- pause + money (right) ----
+    if (UI.iconButton(ctx, 'pause', W - 148, 6, 20, PAUSE_ICON(), { tip: 'Pause [Esc]' })) this.paused = true;
     const bump = this.moneyBump;
-    UI.panel(ctx, W - 122, 3, 118, 24, { fill: '#2a1d17', border: '#8a6a4a' });
-    ctx.drawImage(Art.coin('gold', Math.floor(this.time * 10) % 6), W - 116, 10);
-    Font.drawScaled(ctx, money(this.dispMoney), W - 60, 16, 1 + bump * 0.18, { color: '#ffffff', scale: 1, shadow: 'outline' });
-    Font.draw(ctx, '+' + money(this.r.earned), W - 8, 31, { align: 'right', color: '#9af08a', shadow: 'outline' });
-    ctx.drawImage(Art.gem('ruby', 0), W - 122, 30);
-    Font.drawScaled(ctx, fmt(P.gems), W - 104, 35, 1 + this.gemBump * 0.3, { color: '#ff9aa0', shadow: 'outline' });
+    UI.panel(ctx, W - 122, 4, 118, 24, { fill: '#2a1d17', border: bump > 0.3 ? '#e0b060' : '#8a6a4a', shadow: false });
+    ctx.drawImage(Art.coin('gold', Math.floor(t * 10) % 6), W - 116, 10);
+    Font.drawScaled(ctx, money(this.dispMoney), W - 58, 16, 1 + bump * 0.18, { color: '#ffffff', shadow: 'outline', bold: true });
 
-    // ---- combo ----
+    // ================= right column =================
+    const rx = ARENA.x1 + 8, rw = W - rx - 6;
+    // today's earnings + gems
+    UI.panel(ctx, rx, 38, rw, 34, { fill: 'rgba(26,17,13,0.92)', border: '#4a3424', shadow: false });
+    Font.draw(ctx, 'HEUTE', rx + 6, 42, { color: '#8a7a6a', shadow: null });
+    Font.draw(ctx, '+' + money(this.r.earned), rx + rw - 6, 42, { align: 'right', color: '#9af08a', bold: true, shadow: null });
+    ctx.drawImage(Art.gem('ruby', Math.floor(t * 3) % 4), rx + 4, 54);
+    Font.drawScaled(ctx, fmt(P.gems), rx + rw - 18, 61, 1 + this.gemBump * 0.3, { color: '#ffb0b8', shadow: null });
+    let ry = 78;
+    // event
+    if (this.event) {
+      const lines = Font.wrap(this.event.name, rw - 22);
+      const eh = 8 + lines.length * 10;
+      UI.panel(ctx, rx, ry, rw, eh, { fill: '#241a12', border: this.event.color, shadow: false });
+      ctx.drawImage(Art.icon(this.event.icon), rx + 4, ry + Math.round(eh / 2 - 6));
+      lines.forEach((l, i) => Font.draw(ctx, l, rx + 18, ry + 4 + i * 10, { color: this.event.color, shadow: null }));
+      ry += eh + 6;
+    }
+    // combo
     if (this.combo >= 2) {
       const c = this.combo;
       const col = c >= 100 ? '#ff4a8a' : c >= 50 ? '#ff7a2a' : c >= 25 ? '#ffd040' : '#ffffff';
       const k = 1 + this.comboPop * 0.35;
-      Font.drawScaled(ctx, 'x' + c, W - 40, 62, k, { scale: 2, color: col, shadow: 'thick', gradient: c >= 25 ? FIRE_GRAD : null });
-      Font.draw(ctx, 'COMBO', W - 40, 76, { align: 'center', color: '#f3e6cf', shadow: 'outline' });
-      UI.bar(ctx, W - 62, 88, 44, 2, this.comboT / S.comboWindow, col);
-      if (S.comboCoin) Font.draw(ctx, '+' + Math.round(c * S.comboCoin * 100) + '% $', W - 40, 94, { align: 'center', color: '#9af08a', shadow: 'outline' });
+      const ccx = rx + rw / 2;
+      Font.drawScaled(ctx, 'x' + c, ccx, ry + 14, k, { scale: 2, color: col, shadow: 'thick', gradient: c >= 25 ? FIRE_GRAD : null });
+      Font.draw(ctx, 'COMBO', ccx, ry + 28, { align: 'center', color: '#f3e6cf', shadow: 'outline' });
+      UI.bar(ctx, rx + 8, ry + 40, rw - 16, 2, this.comboT / S.comboWindow, col);
+      if (S.comboCoin) Font.draw(ctx, '+' + Math.round(c * S.comboCoin * 100) + '% $', ccx, ry + 46, { align: 'center', color: '#9af08a', shadow: 'outline' });
     }
-
-    // ---- day / bill ----
-    const b = this.bill;
-    const info = `Tag ${P.C.day}  ·  ${b.name} ${money(b.amount)}  ·  ${P.C.dueDays <= 1 ? 'letzter Tag!' : 'noch ' + P.C.dueDays + ' Tage'}`;
-    Font.draw(ctx, info, W / 2 + 10, 6, { align: 'center', color: P.C.dueDays <= 1 && P.C.money < b.amount ? '#ff8a6a' : '#c8b8a0', shadow: 'outline' });
-    UI.bar(ctx, W / 2 - 50, 18, 120, 3, P.C.money / b.amount, P.C.money >= b.amount ? '#6fd65a' : '#e0a84a');
-    if (this.event) {
-      ctx.drawImage(Art.icon(this.event.icon), W / 2 - 62, 23);
-      Font.draw(ctx, this.event.name, W / 2 - 46, 25, { color: this.event.color, shadow: 'outline' });
-    }
-
-    // ---- boss bar ----
+    ry += 62;
+    // boss
     if (this.boss && !this.boss.dead) {
-      const b = this.boss;
-      const left = Math.max(0, PIGS.bailiff.escapeTime - b.age);
-      UI.panel(ctx, W / 2 - 110, 38, 220, 22, { fill: '#1a0e0c', border: '#c0392b' });
-      Font.draw(ctx, 'Gerichtsvollzieher', W / 2 - 102, 41, { color: '#ff9a7a', bold: true });
-      Font.draw(ctx, Math.ceil(left) + 's', W / 2 + 102, 41, { align: 'right', color: left < 5 && Math.floor(this.time * 6) % 2 ? '#ff4a3a' : '#ffffff' });
-      UI.bar(ctx, W / 2 - 102, 52, 204, 4, b.hp / b.maxHp, '#e8503e');
+      const bo = this.boss;
+      const left = Math.max(0, PIGS.bailiff.escapeTime - bo.age);
+      UI.panel(ctx, rx, ry, rw, 40, { fill: '#1a0e0c', border: '#c0392b', shadow: false });
+      Font.draw(ctx, 'BOSS', rx + 6, ry + 4, { color: '#ff9a7a', bold: true, shadow: null });
+      Font.draw(ctx, Math.ceil(left) + 's', rx + rw - 6, ry + 4, { align: 'right', color: left < 5 && Math.floor(t * 6) % 2 ? '#ff4a3a' : '#ffffff', shadow: null });
+      Font.draw(ctx, 'Vollzieher', rx + 6, ry + 15, { color: '#c8a090', shadow: null });
+      UI.bar(ctx, rx + 6, ry + 30, rw - 12, 4, bo.hp / bo.maxHp, '#e8503e');
     }
-    // ---- ability ----
+
+    // ================= left column =================
+    // buffs (stacked above the ability button)
+    let byy = H - 64;
+    const buff = (icon, tt, max, col, name) => {
+      if (tt <= 0) return;
+      UI.panel(ctx, 6, byy, ARENA.x0 - 14, 16, { fill: '#1a120e', border: col, shadow: false });
+      ctx.drawImage(Art.icon(icon), 8, byy + 2);
+      Font.draw(ctx, name, 22, byy + 4, { color: col, shadow: null });
+      ctx.fillStyle = col; ctx.fillRect(22, byy + 13, Math.round((ARENA.x0 - 34) * (tt / max)), 1);
+      byy -= 19;
+    };
+    buff('star', this.partyT, 5, '#ff8ad0', 'Party x1.5');
+    buff('star', this.discoT, 6, '#c07af0', 'Disco');
+    buff('fire', this.frenzyT, 6, '#ff5a3a', 'Raserei');
+    buff('coffee', this.coffeeT, 5, '#c08a54', 'Koffein');
+    buff('coins', this.goldRushT, 4, '#ffe070', 'Goldrausch');
+    // stone rain ability
     if (S.stoneRain) {
-      const x = 8, y = H - 44, s = 36;
+      const x = 6, y = H - 42, sw = ARENA.x0 - 14, sh = 36;
       const ready = this.stoneCD <= 0;
-      const r = UI.region('stone', x, y, s, s);
-      UI.panel(ctx, x, y, s, s, { fill: ready ? '#3a2a20' : '#1a120e', border: ready ? '#e0a84a' : '#5a4a3e' });
-      ctx.drawImage(ready ? Art.icon('rock', 2) : Art.iconGray('rock'), ready ? x + 6 : x + 12, ready ? y + 6 : y + 12);
+      const r = UI.region('stone', x, y, sw, sh);
+      UI.panel(ctx, x, y, sw, sh, { fill: ready ? '#3a2a20' : '#1a120e', border: ready ? '#e0a84a' : '#5a4a3e', shadow: false });
+      ctx.drawImage(ready ? Art.icon('rock', 2) : Art.iconGray('rock'), x + 4, y + 6);
+      Font.draw(ctx, 'Steinregen', x + 32, y + 7, { color: ready ? '#ffe0a0' : '#8a7a6a', shadow: null });
       if (!ready) {
-        const f = this.stoneCD / S.stoneCD;
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(x + 2, y + 2, s - 4, Math.round((s - 4) * f));
-        Font.draw(ctx, Math.ceil(this.stoneCD) + '', x + s / 2, y + s / 2 - 4, { align: 'center', color: '#ffffff', shadow: 'outline' });
-      } else if (Math.floor(this.time * 2) % 2) {
-        ctx.strokeStyle = '#ffe9a8'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+        UI.bar(ctx, x + 32, y + 20, sw - 38, 4, 1 - this.stoneCD / S.stoneCD, '#a08a6a');
+      } else {
+        Font.draw(ctx, Input.isTouch ? 'TIPPEN' : '[LEER]', x + 32, y + 20, { color: Math.floor(t * 2) % 2 ? '#ffe9a8' : '#c8a870', shadow: null });
       }
-      if (!Input.isTouch) Font.draw(ctx, 'LEER', x + s / 2, y + s + 1, { align: 'center', color: T.dim, shadow: 'outline' });
       if ((r.click || Input.key(' ')) && ready) this.castStones();
     }
-    // pause button
-    if (UI.iconButton(ctx, 'pause', W - 150, 4, 20, PAUSE_ICON(), { tip: 'Pause [Esc]' })) this.paused = true;
   }
 
   drawIntro(ctx) {
