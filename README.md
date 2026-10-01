@@ -39,7 +39,7 @@ npx serve .
 2. **Rechnungen bezahlen** – Jede Rechnung hat eine Frist in Tagen (1 Run = 1 Tag). Verpasst du sie: **Bankrott**.
 3. **Perks wählen** – Nach jeder bezahlten Rechnung: Wähle 1 von 3 Karten (Gewöhnlich / Selten / Episch).
 4. **Skillbaum** – Über 90 Knoten in 10 Pfaden: Griffkraft, Handgelenk, Steinregen, Elektro, Frost, Glück, Gier, Schweinezucht, Fitnessstudio, Koffein.
-5. **Bankrott & Prestige** – Neue Rekorde geben Vermächtnispunkte (Rechnung #5 = 5 VP). Gib sie im Schmuckkasten für 20 Ringe und 5 Armbänder aus.
+5. **Bankrott & Prestige** – Neue Rekorde geben Vermächtnispunkte (Rechnung #5 = 5 VP). Gib sie im Schmuckkasten für 20 Ringe und 5 Armbänder aus. Beim Bankrott verlierst du Geld, Skills, Perks und deine Hämmer (zurück zum Holzhammer) – Edelsteine, Verzauberungen, Sammlung und Ringe bleiben.
 
 ## ✨ Inhalte
 
@@ -47,7 +47,7 @@ npx serve .
   hauen ab, Tresorschweine sind gepanzert, Geisterschweine werden unsichtbar, Ninjas weichen aus,
   Mama-Schweine werfen Ferkel, Clowns teilen sich, Vampire regenerieren, das Finanzamt pfändet…
 - **15 Hämmer** (Holzhammer, Baguette, Bratpfanne, Mjölnir, Banhammer, BEZAHLT-Stempel …) –
-  aufwertbar bis Stufe 25 mit **5 Sternen** und leuchtenden Auren
+  aufwertbar bis Stufe 25 mit **5 Sternen** und leuchtenden Auren (werden beim Bankrott zurückgesetzt)
 - **6 Verzauberungen** in der Schmiede: Flammenschlag, Vampirschlag, Echo-Geisterhammer, Goldener Schlag, Schockwelle, Juwelier
 - **33 Perks**, **20 Ringe + 5 Armbänder**
 - **24 seltene Sammelmünzen** mit dauerhaften Boni und Set-Boni im Münzalbum

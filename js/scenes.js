@@ -375,7 +375,7 @@ class HubScene {
     }
     if (this.tab === 'bills' && P.C.billIdx > 0) {
       if (UI.button(ctx, 'f_bank', 130, H - 23, 120, 18, 'Bankrott erklären', { style: 'ghost', tip: 'Freiwillig neu starten und Vermächtnispunkte ausgeben.' })) {
-        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills und Perks gehen verloren. Ringe, Hämmer und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
+        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills, Perks und Hämmer gehen verloren. Ringe, Edelsteine und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
       }
     }
     const due = P.C.dueDays <= 0;
@@ -741,7 +741,7 @@ class BankruptScene {
         Font.draw(ctx, a, W / 2 - 30, 160 + i * 18, { color: '#c8b8a0', alpha: a2 });
         Font.draw(ctx, String(b), W / 2 + 200, 160 + i * 18, { align: 'right', color: i === 5 ? '#c8a0ff' : '#ffffff', alpha: a2, bold: i === 5 });
       });
-      Font.drawWrapped(ctx, 'Geld, Skills und Perks sind weg. Deine Hämmer, Edelsteine, Sammlung und Ringe bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 290, 260, { color: '#8a7a6a' });
+      Font.drawWrapped(ctx, 'Geld, Skills, Perks und Hämmer sind weg. Edelsteine, Verzauberungen, Sammlung und Ringe bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 290, 260, { color: '#8a7a6a' });
     }
     if (t > 2 && UI.button(ctx, 'bk_go', W - 150, H - 36, 140, 26, 'Zum Schmuckkasten', { style: 'gold', key: ' ', keyLabel: 'LEER' })) Game.goto(new PrestigeScene());
   }
@@ -866,6 +866,10 @@ class PrestigeScene {
   }
   startCycle() {
     P.cycle++;
+    // bankruptcy also takes the hammers: back to the plain wooden one
+    P.hammers = ['wood'];
+    P.hammerLvl = { wood: 0 };
+    P.hammer = 'wood';
     P.C = newCycleState(P);
     invalidateStats();
     saveGame();
