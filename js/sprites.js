@@ -1759,15 +1759,16 @@ const Art = (() => {
     g.set(cx - 14, cy + 2, sk.dd); g.set(cx + 14, cy + 2, '#7a4434');
     // head
     g.ell(cx, cy, 13.5, 15.5, (x, y, nx, ny) => {
-      const l = -0.55 * nx - 0.6 * ny;
-      if (ny > 0.55 && Math.abs(nx) < 0.85) {
-        // stubble zone
-        const st = hash2(x, y, 12) > 0.55;
-        return st ? (nx > 0.3 ? '#a8705a' : '#c08a70') : nx > 0.4 ? sk.d : sk.b;
+      // light from the left: calm, nearly vertical bands instead of a diagonal stripe across the face
+      const l = -0.8 * nx - 0.25 * ny;
+      if (ny > 0.68 && Math.abs(nx) < 0.8) {
+        // light stubble along the jaw
+        const st = hash2(x, y, 12) > 0.72;
+        return st ? (nx > 0.3 ? '#b07a62' : '#c8957a') : nx > 0.4 ? sk.d : sk.b;
       }
-      if (l > 0.55) return sk.hl;
-      if (l > 0.1) return sk.l;
-      if (l < -0.45) return sk.d;
+      if (l > 0.62 && ny < 0.3) return sk.hl;
+      if (l > 0.3) return sk.l;
+      if (l < -0.5) return sk.d;
       return sk.b;
     });
     // hair (messy)
@@ -1786,8 +1787,11 @@ const Art = (() => {
     [[-8, -19], [-4, -21], [0, -20], [3, -22], [7, -19], [10, -17], [-11, -16]].forEach(([dx, dy], i) => {
       g.tri(cx + dx - 2, cy - 15, cx + dx + 3, cy - 15, cx + dx, cy + dy, i % 2 ? hair.b : hair.l);
     });
-    // fringe strands
-    [[-6, -8], [-5, -7], [2, -8], [3, -7], [4, -6]].forEach(([dx, dy]) => g.set(cx + dx, cy + dy, hair.d));
+    // fringe: two locks hanging from the hairline (attached, no loose strands on the forehead)
+    g.tri(cx - 10, cy - 13, cx - 3, cy - 13, cx - 8, cy - 8, hair.b);
+    g.tri(cx - 9, cy - 12, cx - 6, cy - 12, cx - 8, cy - 9, hair.l);
+    g.tri(cx + 1, cy - 13, cx + 7, cy - 13, cx + 2, cy - 9, hair.b);
+    g.set(cx - 8, cy - 8, hair.d); g.set(cx + 2, cy - 9, hair.d);
     // eyebrows
     const browY = cy - 4;
     const brows = {
@@ -1802,8 +1806,10 @@ const Art = (() => {
       smug: [[0, 0, 0, 0, 0], [-1, -2, -2, -1, 0]],
     }[expr] || [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
     for (let i = 0; i < 5; i++) {
-      g.set(cx - 9 + i, browY + brows[0][i], hair.d); g.set(cx - 9 + i, browY + brows[0][i] - 1, hair.b);
-      g.set(cx + 4 + i, browY + brows[1][i], hair.d); g.set(cx + 4 + i, browY + brows[1][i] - 1, hair.b);
+      for (const [bx, row] of [[cx - 10, brows[0]], [cx + 4, brows[1]]]) {
+        g.set(bx + i, browY + row[i], hair.d);
+        if (i > 0 && i < 4) g.set(bx + i, browY + row[i] - 1, hair.d);
+      }
     }
     // eyes
     const eyeY = cy - 1;
@@ -1827,8 +1833,7 @@ const Art = (() => {
     };
     drawEye(cx - 9); drawEye(cx + 4);
     // eye bags
-    for (let i = 0; i < 4; i++) { g.set(cx - 9 + i, eyeY + 3, '#c88a7a'); g.set(cx + 4 + i, eyeY + 3, '#c88a7a'); }
-    if (expr === 'tired' || expr === 'sad') { g.set(cx - 8, eyeY + 4, '#b07a6a'); g.set(cx + 5, eyeY + 4, '#b07a6a'); }
+    if (expr === 'tired' || expr === 'sad') for (let i = 1; i < 4; i++) { g.set(cx - 9 + i, eyeY + 3, sk.d); g.set(cx + 4 + i, eyeY + 3, sk.d); }
     // nose (big)
     for (let y = cy; y < cy + 7; y++) { g.set(cx - 1, y, sk.l); g.set(cx, y, sk.b); g.set(cx + 1, y, sk.d); }
     g.set(cx - 2, cy + 6, sk.d); g.set(cx + 2, cy + 6, sk.dd); g.set(cx - 1, cy + 7, sk.dd); g.set(cx, cy + 7, sk.dd); g.set(cx + 1, cy + 7, sk.dd);
