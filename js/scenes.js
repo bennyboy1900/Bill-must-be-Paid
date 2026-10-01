@@ -484,9 +484,10 @@ class HubScene {
     ctx.fillStyle = '#c8b090'; ctx.fillRect(x + w - 1, y, 1, h);
     ctx.fillStyle = '#a02020'; ctx.fillRect(x, y + h - 3, w, 3);
     const ink = '#2a1a14';
-    Font.draw(ctx, b.name, x + 10, y + 10, { color: ink, shadow: null, bold: true });
+    Font.draw(ctx, Font.fit(b.name, w - 26 - Font.measure('····' + b.acct), 1, true), x + 10, y + 10, { color: ink, shadow: null, bold: true });
     Font.draw(ctx, '····' + b.acct, x + w - 10, y + 10, { align: 'right', color: '#7a6a5a', shadow: null });
     Font.draw(ctx, `Rechnung #${b.index + 1}`, x + 10, y + 21, { color: '#8a7a6a', shadow: null });
+    if (b.funny) Font.draw(ctx, 'SONDERRECHNUNG', x + w - 10, y + 21, { align: 'right', color: '#c0392b', shadow: null, bold: true });
     ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 33, w - 16, 1);
     Font.draw(ctx, 'Fälliger Betrag', x + w / 2, y + 46, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
     Font.draw(ctx, money(b.amount), x + w / 2, y + 60, { align: 'center', color: ink, shadow: null, scale: 3, bold: true });
@@ -504,7 +505,11 @@ class HubScene {
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 12, y + 170, Math.round((w - 24) * frac), 1);
     const miss = b.amount - P.C.money;
     Font.draw(ctx, miss > 0 ? 'Es fehlen noch ' + money(miss) : 'Genug Geld zum Bezahlen!', x + w / 2, y + 188, { align: 'center', color: miss > 0 ? '#a83a2a' : '#2a8a30', shadow: null, bold: true });
-    Font.draw(ctx, '* BITTE UMGEHEND ÜBERWEISEN', x + w / 2, y + 222, { align: 'center', color: '#a8988a', shadow: null });
+    if (b.item) {
+      // special bills list what was actually billed
+      ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 200, w - 16, 1);
+      Font.drawWrapped(ctx, 'Posten: ' + b.item, x + 10, y + 206, w - 20, { color: '#6a5a4a', shadow: null });
+    } else Font.draw(ctx, '* BITTE UMGEHEND ÜBERWEISEN', x + w / 2, y + 222, { align: 'center', color: '#a8988a', shadow: null });
     // stamps
     if (this.paper.state === 'paid') this.stamp(ctx, x + w / 2, y + 120, 'BEZAHLT', '#2a9a3a', this.paper.t);
     else if (P.C.dueDays <= 0 && P.C.money < b.amount) this.stamp(ctx, x + w / 2, y + 120, 'ÜBERFÄLLIG', '#c0392b', this.t);

@@ -54,6 +54,7 @@ npx serve .
 - **Schweinedex**, **35 Erfolge**, Statistiken
 - **Gerichtsvollzieher-Boss** am letzten Tag vor der Fälligkeit und **11 Tagesereignisse** (Hitzewelle, Glückstag, Gewitter, Steuerprüfung …)
 - Jackpots, Goldrausch, Raserei, Party- & Disco-Buffs, Lottoscheine, Kaffee & Energy-Drinks
+- **20 lustige Sonderrechnungen** (Claude-Rechnung, Gartenzwerg-Kaution, Drachen-Versicherung, Katzen-Bestellung …), die zufällig normale Rechnungen ersetzen – gleicher Betrag, gleiche Frist, nur mit Posten-Liste
 - Bill mit 9 Gesichtsausdrücken, Sprechblasen und über 60 Sprüchen
 - Juice: Hitstop, Screenshake, Squash-&-Stretch-Federphysik, Sprite-Bruchstücke, Münzregen, Schwungspuren
 

@@ -1690,7 +1690,8 @@ class RunScene {
     Font.draw(ctx, '·  ' + (last ? 'letzter Tag!' : 'noch ' + P.C.dueDays + ' Tage'), cx + 4, 4, { color: last && P.C.money < b.amount ? (Math.floor(t * 3) % 2 ? '#ff7a5a' : '#ffb09a') : '#a8927a', shadow: null });
     const pw = 210, pxb = cx - pw / 2, f = clamp(P.C.money / b.amount, 0, 1);
     UI.bar(ctx, pxb, 15, pw, 10, f, f >= 1 ? '#4ab84a' : '#b8782a');
-    Font.draw(ctx, `${b.name}: ${money(P.C.money)} / ${money(b.amount)}`, cx, 16, { align: 'center', color: '#ffffff', shadow: 'outline' });
+    const amt = `: ${money(P.C.money)} / ${money(b.amount)}`;
+    Font.draw(ctx, Font.fit(b.name, pw - 10 - Font.measure(amt)) + amt, cx, 16, { align: 'center', color: '#ffffff', shadow: 'outline' });
     // ---- pause + money (right) ----
     if (UI.iconButton(ctx, 'pause', W - 148, 6, 20, PAUSE_ICON(), { tip: 'Pause [Esc]' })) this.paused = true;
     const bump = this.moneyBump;
