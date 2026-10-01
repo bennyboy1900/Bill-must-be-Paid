@@ -259,7 +259,6 @@ class HubScene {
     if (o.achievements) for (const a of o.achievements) UI.toast({ title: 'Erfolg: ' + a.name, text: rewardText(a.reward), icon: Art.icon(a.icon), color: '#ffd040', life: 4 });
     if (o.achievements && o.achievements.length) Sound.play('achievement');
     this.billLine(o.fromRun);
-    if (P.C.dueDays <= 0 && P.C.money < currentBill().amount && !P.C.pendingPerks) this.forceBankrupt = true;
   }
   enter() { Sound.Music.play('menu'); }
   billLine(fromRun) {
@@ -267,7 +266,7 @@ class HubScene {
     const fill = (s) => s.replace('{bill}', b.name);
     if (P.C.dueDays <= 0) {
       if (P.C.money >= b.amount) this.speech.say(fill(pick(LINES.dueNow)), 'worried');
-      else this.speech.say(LINES.cantPay[0], 'shocked');
+      else this.speech.say(LINES.cantPay[0] + (Object.keys(P.C.skills).length ? ' ...Moment! Ich könnte Skills verkaufen (75% zurück)!' : ''), 'shocked');
     } else if (P.C.dueDays === 1 && P.C.money < b.amount) this.speech.say(fill(pick(LINES.dueSoon)), 'worried');
     else if (P.C.money >= b.amount * 3 && fromRun) this.speech.say(pick(LINES.rich), 'money');
     else if (fromRun && P.C.money >= b.amount) this.speech.say('Genug Geld für die ' + b.name + '! Bezahlen?', 'happy');
@@ -286,9 +285,6 @@ class HubScene {
     this.dispGems = damp(this.dispGems, P.gems, 9, dt);
     if (Math.abs(this.dispGems - P.gems) < 0.5) this.dispGems = P.gems;
     if (this.overlay && this.overlay.update) this.overlay.update(dt);
-    if (this.forceBankrupt && !UI.fading()) {
-      this.bankruptT = (this.bankruptT || 0) + dt;
-    }
   }
 
   canStartRun() {
@@ -431,9 +427,9 @@ class HubScene {
     }
     // right column: upcoming + perks
     const rx = W - 186;
-    UI.panel(ctx, rx, 40, 176, 120, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
+    UI.panel(ctx, rx, 40, 176, 96, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
     Font.draw(ctx, 'Kommende Rechnungen', rx + 8, 46, { color: '#e0a84a', bold: true });
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
       const nb = billInfo(P.C.billIdx + i);
       const y = 60 + (i - 1) * 24;
       ctx.globalAlpha = 1 - i * 0.18;
@@ -442,23 +438,33 @@ class HubScene {
       Font.draw(ctx, `${nb.days + stats().dueBonus} Tage`, rx + 8, y + 10, { color: '#7a6a5a' });
       ctx.globalAlpha = 1;
     }
-    UI.panel(ctx, rx, 168, 176, 122, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
-    Font.draw(ctx, 'Deine Perks', rx + 8, 174, { color: '#e0a84a', bold: true });
+    // today's event
+    const ev = P.C.event ? EVENT_BY_ID[P.C.event] : null;
+    UI.panel(ctx, rx, 140, 176, 36, { fill: ev ? '#2a2016' : 'rgba(30,20,16,0.85)', border: ev ? ev.color : '#5a4030' });
+    if (ev) {
+      ctx.drawImage(Art.icon(ev.icon), rx + 8, 152 + Math.round(Math.sin(this.t * 4)));
+      Font.draw(ctx, 'HEUTE: ' + ev.name, rx + 26, 146, { color: ev.color, bold: true });
+      Font.draw(ctx, ev.d, rx + 26, 158, { color: '#d8c8b0' });
+    } else {
+      Font.draw(ctx, 'Heute: ein ganz normaler Tag.', rx + 8, 146, { color: '#7a6a5a' });
+      Font.draw(ctx, 'Ereignisse ab Tag 3', rx + 8, 158, { color: '#5a4a3e' });
+    }
+    UI.panel(ctx, rx, 180, 176, 110, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
+    Font.draw(ctx, 'Deine Perks', rx + 8, 186, { color: '#e0a84a', bold: true });
     const owned = Object.keys(P.C.perks).filter((k) => P.C.perks[k] > 0);
-    if (!owned.length) Font.drawWrapped(ctx, 'Bezahle Rechnungen, um Perks freizuschalten!', rx + 8, 190, 160, { color: '#7a6a5a' });
+    if (!owned.length) Font.drawWrapped(ctx, 'Bezahle Rechnungen, um Perks freizuschalten!', rx + 8, 202, 160, { color: '#7a6a5a' });
     owned.forEach((id, i) => {
       const pk = PERK_BY_ID[id];
-      const x = rx + 8 + (i % 7) * 23, y = 188 + Math.floor(i / 7) * 25;
-      const r = UI.region('perk_' + id, x, y, 20, 20);
-      UI.panel(ctx, x, y - (r.hover ? 1 : 0), 20, 20, { fill: '#1a110d', border: RARITY[pk.r].color, shadow: false });
-      ctx.drawImage(Art.icon(pk.icon), x + 4, y + 4 - (r.hover ? 1 : 0));
-      Font.draw(ctx, String(P.C.perks[id]), x + 18, y + 13, { align: 'right', color: '#ffffff', shadow: 'outline' });
+      const x = rx + 7 + (i % 8) * 20.5, y = 198 + Math.floor(i / 8) * 21;
+      const r = UI.region('perk_' + id, x, y, 18, 18);
+      UI.panel(ctx, x, y - (r.hover ? 1 : 0), 18, 18, { fill: '#1a110d', border: RARITY[pk.r].color, shadow: false });
+      ctx.drawImage(Art.icon(pk.icon), Math.round(x + 3), y + 3 - (r.hover ? 1 : 0));
+      if (P.C.perks[id] > 1) Font.draw(ctx, String(P.C.perks[id]), x + 17, y + 11, { align: 'right', color: '#ffffff', shadow: 'outline' });
       if (r.hover) UI.tooltip([{ t: pk.name, c: RARITY[pk.r].color }, `Stufe ${P.C.perks[id]}/${pk.max}`, pk.d(P.C.perks[id])]);
     });
     // record
     Font.draw(ctx, `Rekord: Rechnung #${P.record}`, rx + 8, 278, { color: '#a888d8' });
 
-    if (this.forceBankrupt && (this.bankruptT || 0) > 1.6 && !this._bk) { this._bk = true; Game.goto(new BankruptScene()); }
   }
 
   drawPaper(ctx, x, y, b) {
@@ -547,7 +553,6 @@ class HubScene {
     invalidateStats();
     this.overlay = null;
     this.paper = { y: -280, vy: 0, state: 'in', t: 0, rot: 0, x: 0 };
-    this.forceBankrupt = false;
     this.speech.say('Oh nein. Die ' + nb.name + '. ' + nb.q, 'worried');
   }
 }

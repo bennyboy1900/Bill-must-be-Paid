@@ -824,6 +824,7 @@ const Art = (() => {
     vampire: { base: '#a8a0c8', acc: ['vcape'], eyes: 'red' },
     clown: { base: '#fff4ec', pattern: 'clown', acc: ['clownhair', 'rednose'] },
     clownjr: { base: '#fff4ec', pattern: 'clown', acc: ['clownhair', 'rednose'], size: 0.66 },
+    bailiff: { base: '#7a7a88', pattern: 'suit', acc: ['bowler', 'briefcase', 'glasses'], size: 1.5 },
   };
 
   function pigColors(base) {
@@ -975,6 +976,15 @@ const Art = (() => {
   }
 
   const PATTERNS = {
+    suit(u, v, nx, ny, t, C, s) {
+      const fx = 7 * s;
+      if (v > -4 * s && Math.abs(u - fx) < (v + 4 * s) * 0.45) {
+        if (Math.abs(u - fx) < 0.8 * s && v > -2 * s) return v > 4 * s ? '#a01a2a' : '#d0303a';
+        return t === 'dd' ? '#c8c8d0' : '#f4f4f8';
+      }
+      if (Math.round(u) % 5 === 0 && t !== 'hl') return C.d;
+      return null;
+    },
     stripes(u, v, nx, ny, t, C, s) {
       if (((Math.round(v / s) % 4) + 4) % 4 === 0) return t === 'dd' || t === 'd' ? '#2a2a50' : '#3a3a70';
       return null;
@@ -1112,6 +1122,20 @@ const Art = (() => {
   };
 
   const ACCS = {
+    bowler(g, o) {
+      const { cx, cy, ry, s } = o;
+      const by = Math.round(cy - ry + 2.5 * s);
+      for (let x = Math.round(cx - 1 * s); x <= cx + 10 * s; x++) { g.set(x, by, '#141418'); g.set(x, by - 1, '#24242c'); }
+      g.ell(cx + 4.5 * s, by - 2 * s, 4.2 * s, 3.6 * s, (x, y, nx, ny) => (ny > 0.4 ? null : -nx - ny > 0.7 ? '#4a4a58' : '#1e1e26'));
+    },
+    briefcase(g, o) {
+      const { cx, s, legBot } = o;
+      const x0 = Math.round(cx + 6 * s), y0 = Math.round(legBot - 6 * s);
+      g.rect(x0, y0, Math.round(8 * s), Math.round(5 * s), '#6a3a1e');
+      g.rect(x0, y0, Math.round(8 * s), 1, '#8a5a30');
+      g.rect(x0 + Math.round(3 * s), y0 - 2, Math.round(2 * s), 2, '#3a2010');
+      g.set(x0 + Math.round(4 * s), y0 + Math.round(2 * s), '#e0b040');
+    },
     bandana(g, o) {
       const { cx, cy, ry, s, rx } = o;
       const by = Math.round(cy - ry + 3 * s);

@@ -107,6 +107,7 @@ const Game = {
     UI.enabled = !UI.fading();
     if (this.modal) this.drawModal(ctx, dt);
     UI.drawTooltip(ctx);
+    UI.setToastMode(this.scene instanceof RunScene && this.scene.state !== 'results' ? 'left' : 'center');
     UI.drawToasts(ctx, dt);
     UI.drawFade(ctx, dt);
     UI.end(dt);

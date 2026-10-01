@@ -168,25 +168,35 @@ const UI = (() => {
   }
 
   // ---------- toasts ----------
-  function toast(o) { toasts.push(Object.assign({ t: 0, life: 3.2 }, o)); if (toasts.length > 4) toasts.shift(); }
+  function toast(o) { toasts.push(Object.assign({ t: 0, life: 3.2 }, o)); }
+  let toastMode = 'center';
+  function setToastMode(m) { toastMode = m; }
   function drawToasts(ctx, dt) {
-    let y = H - 70;
+    const left = toastMode === 'left';
+    let y = left ? 52 : H - 70;
+    const maxN = left ? 3 : 4;
+    while (toasts.length > maxN) toasts.shift();
     for (let i = 0; i < toasts.length; i++) {
       const t = toasts[i];
       t.t += dt;
       const k = t.t < 0.25 ? Ease.outBack(t.t / 0.25) : t.t > t.life - 0.3 ? 1 - Ease.inQuad((t.t - (t.life - 0.3)) / 0.3) : 1;
-      const w = Math.max(150, Math.max(Font.measure(t.title), Font.measure(t.text || '')) + (t.icon ? 30 : 14));
-      const x = Math.round(W / 2 - w / 2);
-      const yy = Math.round(y + (1 - k) * 40);
+      const w = Math.max(left ? 120 : 150, Math.max(Font.measure(t.title), Font.measure(t.text || '')) + (t.icon ? 32 : 14));
+      const x = left ? Math.round(8 - (1 - clamp(k, 0, 1)) * (w + 10)) : Math.round(W / 2 - w / 2);
+      const yy = left ? y : Math.round(y + (1 - k) * 40);
       ctx.save();
-      ctx.globalAlpha = clamp(k, 0, 1);
+      ctx.globalAlpha = clamp(k, 0, 1) * (left ? 0.92 : 1);
       panel(ctx, x, yy, w, 32, { fill: '#1a110d', border: t.color || T.gold, glow: true });
-      if (t.icon) ctx.drawImage(t.icon, x + 8 + Math.round((14 - t.icon.width) / 2), yy + Math.round(16 - t.icon.height / 2));
-      const tx = x + (t.icon ? 26 : 8);
+      if (t.icon) {
+        const ic = t.icon;
+        const sc = Math.min(1, 20 / ic.width, 22 / ic.height);
+        const iw = ic.width * sc, ih = ic.height * sc;
+        ctx.drawImage(ic, Math.round(x + 15 - iw / 2), Math.round(yy + 16 - ih / 2), iw, ih);
+      }
+      const tx = x + (t.icon ? 28 : 8);
       Font.draw(ctx, t.title, tx, yy + 6, { color: t.color || T.goldL });
       if (t.text) Font.draw(ctx, t.text, tx, yy + 18, { color: T.text });
       ctx.restore();
-      y -= 36 * clamp(k, 0, 1);
+      y += (left ? 36 : -36) * clamp(k, 0, 1);
       if (t.t > t.life) { toasts.splice(i, 1); i--; }
     }
   }
@@ -222,7 +232,7 @@ const UI = (() => {
   const fading = () => !!fade;
 
   return {
-    begin, end, region, panel, button, iconButton, bar, tooltip, drawTooltip, toast, drawToasts, transition, drawFade, fading, inside,
+    begin, end, region, panel, button, iconButton, bar, tooltip, drawTooltip, toast, drawToasts, setToastMode, transition, drawFade, fading, inside,
     get enabled() { return enabled; }, set enabled(v) { enabled = v; },
     get hoverId() { return hoverId; },
   };

@@ -16,6 +16,7 @@ function newCycleState(P) {
     pendingPerks: null,
     runs: 0,
     earnedCycle: 0,
+    event: null,
   };
 }
 
@@ -139,9 +140,10 @@ function computeStats(PP, prestigeOnly = false) {
   const F = {
     hammer: h,
     maxStamina: Math.round((40 + s.staminaFlat) * (1 + s.staminaPct)),
-    drain: s.drain * Math.max(0, 1 + s.drainPct),
+    // passive drain scales with the pool so runs stay snappy (max ~90s without regen)
+    drain: Math.max(0.5, ((40 + s.staminaFlat) * (1 + s.staminaPct)) / 90) * (s.drain / 0.5) * Math.max(0.2, 1 + s.drainPct),
     regen: s.regen,
-    swingCost: Math.max(0.25, 1 + s.costPct),
+    swingCost: Math.max(0.5, 1 + s.costPct),
     swingRate: 2.1 * (1 + s.speedPct) * h.rate,
     damage: (1 + s.dmgFlat) * (1 + s.dmgPct) * s.dmgMore * h.dmg * (1 + 0.15 * hl),
     stars: hammerStars(hl),
@@ -189,7 +191,7 @@ function computeStats(PP, prestigeOnly = false) {
 // ---------------- helpers ----------------
 function currentBill() { return billInfo(P.C.billIdx); }
 function pigScale(billIdx) {
-  return { hp: Math.pow(1.17, billIdx), value: Math.pow(1.11, billIdx) };
+  return { hp: Math.pow(1.15, billIdx), value: Math.pow(1.14, billIdx) };
 }
 function skillLevel(id) { return P.C.skills[id] || 0; }
 function skillUnlocked(sk) { return sk.req.length === 0 || sk.req.some((r) => skillLevel(r) > 0); }

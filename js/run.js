@@ -732,6 +732,8 @@ class RunScene {
   constructor() {
     invalidateStats();
     this.S = computeStats(P);
+    this.event = P.C.event ? EVENT_BY_ID[P.C.event] : null;
+    if (this.event) this.event.a(this.S);
     const S = this.S;
     this.maxStamina = S.maxStamina;
     this.stamina = S.maxStamina;
@@ -746,6 +748,7 @@ class RunScene {
     this.stoneCD = 2; this.stormT = S.storm || 0;
     this.shakeAmt = 0; this.hitstop = 0; this.flash = 0; this.flashCol = '#ffffff'; this.timeScale = 1;
     this.secondWindUsed = false;
+    this.recovered = 0;
     this.moneyBefore = P.C.money;
     this.dispMoney = P.C.money; this.moneyBump = 0; this.gemBump = 0;
     this.coinStreak = 0; this.coinStreakT = 0;
@@ -758,10 +761,35 @@ class RunScene {
     this.camX = 0; this.camY = 0;
     this.results = null;
     this.sched = [];
+    this.boss = null;
+    // the bailiff shows up on the last day before a bill is due
+    if (P.C.dueDays === 1 && P.C.billIdx >= 2 && P.C.money < this.bill.amount) {
+      this.later(5, () => {
+        if (this.state !== 'play') return;
+        this.spawnPig('bailiff', W / 2, BOUNDS.y0 + 60, { z: 260 });
+        const b = this.pigs[this.pigs.length - 1];
+        b.maxHp = b.hp = PIGS.bailiff.hp * pigScale(P.C.billIdx).hp * Math.max(1, this.S.damage / 6);
+        b.fixedValue = this.bill.amount * 0.25;
+        this.boss = b;
+        this.text(W / 2, 92, 'DER GERICHTSVOLLZIEHER!', '#ff7a5a', { scale: 2, big: true, life: 2, vy: -3, gradient: FIRE_GRAD });
+        this.text(W / 2, 116, 'Er trägt ' + money(b.fixedValue) + ' bei sich!', '#ffe9a8', { life: 2, vy: -3 });
+        Sound.play('stamp'); Sound.play('record');
+        this.shake(5);
+      });
+    }
     this.trail = [];
     this.echoes = [];
   }
   later(t, fn) { this.sched.push({ t, fn }); }
+  // on-hit / on-smash stamina gain is limited to one full bar per run
+  recover(v) {
+    const room = this.maxStamina - this.recovered;
+    if (room <= 0) return;
+    const g = Math.min(v, room, this.maxStamina - this.stamina);
+    if (g <= 0) return;
+    this.recovered += g;
+    this.stamina += g;
+  }
 
   enter() { Sound.Music.play('run'); }
 
@@ -1086,7 +1114,7 @@ class RunScene {
     p.hp -= dmg;
     p.hitT = 0.15; p.hurtT = 0.3; p.lastHit = p.age;
     if (o.src === 'hammer' || o.src === 'double' || o.src === 'echo') {
-      if (S.vamp) this.stamina = Math.min(this.maxStamina, this.stamina + S.vamp);
+      if (S.vamp) this.recover(S.vamp);
       if (S.burn) p.burn = { t: 2, dps: dmg * S.burn, tick: 0.4 };
       if (S.goldTouch) {
         const v = p.value * S.coinMult * S.goldTouch;
@@ -1134,10 +1162,17 @@ class RunScene {
     }
     const cx = p.x, cy = p.y - 8 * p.s;
     // value
-    let value = p.value * S.coinMult * (1 + this.combo * S.comboCoin);
+    let value = p.fixedValue !== undefined ? p.fixedValue : p.value * S.coinMult * (1 + this.combo * S.comboCoin);
+    if (p === this.boss) {
+      this.boss = null;
+      this.text(W / 2, 100, 'GEPFÄNDET... ZURÜCK!', '#9af08a', { scale: 2, big: true, life: 2, gradient: GOLD_GRAD });
+      this.flash = 0.6; this.flashCol = '#c8ffc0'; this.hitstop = 0.15; this.shake(8);
+      Sound.play('jackpot');
+      for (let i = 0; i < 50; i++) this.parts.push(new Confetti(cx, cy));
+    }
     if (this.partyT > 0) value *= 1.5;
     if (o.src === 'stone') value *= 1 + S.stoneGold;
-    let jackpot = chance(S.jackpotChance);
+    let jackpot = p.fixedValue === undefined && chance(S.jackpotChance);
     if (jackpot) {
       value *= S.jackpotMult;
       this.r.jackpots++; P.stats.jackpots++;
@@ -1172,10 +1207,8 @@ class RunScene {
       Sound.play('rare');
       for (let i = 0; i < 6; i++) this.parts.push(new Sparkle(cx + rand(-10, 10), cy + rand(-10, 10)));
     }
-    // stamina back
-    if (S.staminaPerSmash) {
-      this.stamina = Math.min(this.maxStamina, this.stamina + S.staminaPerSmash);
-    }
+    // stamina back (capped per run so it can't loop forever)
+    if (S.staminaPerSmash) this.recover(S.staminaPerSmash);
     // shards & FX
     const cols = Art.pigShardColors(p.type);
     for (const c of Art.pigChunks(p.type)) this.parts.push(new Chunk(c, p.x, p.y, p.face, jackpot ? 1.6 : 1));
@@ -1215,6 +1248,7 @@ class RunScene {
 
   escaped(p) {
     p.dead = true;
+    if (p === this.boss) { this.boss = null; this.text(W / 2, 100, 'Er ist weg...', '#ff8a6a', { scale: 2, big: true, life: 1.5 }); }
     this.r.escaped++; P.stats.escaped++;
     if (p.def.taxman) {
       const pen = Math.floor(this.r.earned * 0.1);
@@ -1456,6 +1490,7 @@ class RunScene {
     P.C.earnedCycle += r.earned + bonus + interest;
     P.C.day++;
     P.C.dueDays--;
+    P.C.event = P.C.day >= 3 && chance(0.45) ? pick(EVENTS).id : null;
     saveGame();
     this.state = 'results'; this.stateT = 0;
     this.results = {
@@ -1669,10 +1704,23 @@ class RunScene {
 
     // ---- day / bill ----
     const b = this.bill;
-    const info = `Tag ${P.C.day}  ·  ${b.name} ${money(b.amount)}  ·  ${P.C.dueDays <= 1 ? 'fällig HEUTE' : 'in ' + P.C.dueDays + ' Tagen'}`;
+    const info = `Tag ${P.C.day}  ·  ${b.name} ${money(b.amount)}  ·  ${P.C.dueDays <= 1 ? 'letzter Tag!' : 'noch ' + P.C.dueDays + ' Tage'}`;
     Font.draw(ctx, info, W / 2 + 10, 6, { align: 'center', color: P.C.dueDays <= 1 && P.C.money < b.amount ? '#ff8a6a' : '#c8b8a0', shadow: 'outline' });
     UI.bar(ctx, W / 2 - 50, 18, 120, 3, P.C.money / b.amount, P.C.money >= b.amount ? '#6fd65a' : '#e0a84a');
+    if (this.event) {
+      ctx.drawImage(Art.icon(this.event.icon), W / 2 - 62, 23);
+      Font.draw(ctx, this.event.name, W / 2 - 46, 25, { color: this.event.color, shadow: 'outline' });
+    }
 
+    // ---- boss bar ----
+    if (this.boss && !this.boss.dead) {
+      const b = this.boss;
+      const left = Math.max(0, PIGS.bailiff.escapeTime - b.age);
+      UI.panel(ctx, W / 2 - 110, 38, 220, 22, { fill: '#1a0e0c', border: '#c0392b' });
+      Font.draw(ctx, 'Gerichtsvollzieher', W / 2 - 102, 41, { color: '#ff9a7a', bold: true });
+      Font.draw(ctx, Math.ceil(left) + 's', W / 2 + 102, 41, { align: 'right', color: left < 5 && Math.floor(this.time * 6) % 2 ? '#ff4a3a' : '#ffffff' });
+      UI.bar(ctx, W / 2 - 102, 52, 204, 4, b.hp / b.maxHp, '#e8503e');
+    }
     // ---- ability ----
     if (S.stoneRain) {
       const x = 8, y = H - 44, s = 36;
@@ -1701,6 +1749,7 @@ class RunScene {
     const a = clamp((1 - t) * 3, 0, 1);
     Font.drawScaled(ctx, 'TAG ' + P.C.day, W / 2, H / 2 - 30, k, { scale: 3, color: '#ffe9a8', shadow: 'thick', alpha: a, gradient: GOLD_GRAD });
     if (t > 0.45) Font.drawScaled(ctx, 'LOS!', W / 2, H / 2 + 10, Ease.outBack(Math.min(1, (t - 0.45) / 0.2)) * 1, { scale: 2, color: '#ffffff', shadow: 'thick', alpha: a });
+    if (this.event) Font.draw(ctx, this.event.name + ': ' + this.event.d, W / 2, H / 2 + 32, { align: 'center', color: this.event.color, shadow: 'outline', alpha: a });
   }
 
   drawPause(ctx) {

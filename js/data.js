@@ -29,11 +29,12 @@ const PIGS = {
   vampire: { name: 'Vampirschwein', desc: 'Regeneriert Leben, wenn du es in Ruhe lässt. Hau drauf!', hp: 30, value: 160, speed: 20, behavior: 'wander', weight: 8, coins: ['black', 'silver'], unlock: 'PV', regen: 0.12 },
   clown: { name: 'Clownschwein', desc: 'HUP! Zerbricht in zwei Mini-Clowns.', hp: 14, value: 70, speed: 22, behavior: 'dance', weight: 12, coins: ['gold', 'silver', 'copper'], unlock: 'PL', split: 'clownjr', sound: 'squeak' },
   clownjr: { name: 'Mini-Clown', desc: 'Hup.', hp: 4, value: 30, speed: 34, behavior: 'flee', weight: 0, coins: ['silver'], unlock: 'never', sound: 'squeak' },
+  bailiff: { name: 'Gerichtsvollzieher', desc: 'Kommt am letzten Tag vor der Fälligkeit. Trägt 25% deiner Rechnung bei sich – aber nur 20 Sekunden lang!', hp: 140, value: 0, speed: 14, behavior: 'escape', weight: 0, coins: ['cash', 'gold'], unlock: 'never', escapeTime: 20, boss: true, sound: 'metalhit' },
   king: { name: 'Königsschwein', desc: 'Seine Majestät. Ein ganzer Staatsschatz.', hp: 240, value: 2200, speed: 10, behavior: 'wander', weight: 2, coins: ['gold', 'platinum', 'cash'], unlock: 'PK', gems: [2, 4] },
   golden: { name: 'Goldschwein', desc: 'Pures Gold mit Flügeln. Verschwindet nach 8s!', hp: 14, value: 320, speed: 64, behavior: 'flee', weight: 0, coins: ['gold'], unlock: 'L4', despawn: 8 },
   diamond: { name: 'Diamantschwein', desc: 'Das seltenste Schwein der Welt. Flieht nach 10s.', hp: 110, value: 1500, speed: 34, behavior: 'flee', weight: 0, coins: ['platinum', 'gold'], unlock: 'LX', despawn: 10, gems: [4, 8], diamonds: true },
 };
-const PIG_ORDER = ['pink', 'dots', 'wood', 'runner', 'sleepy', 'porcelain', 'party', 'mafia', 'bomb', 'mama', 'safe', 'crystal', 'robo', 'ghost', 'zombie', 'disco', 'ninja', 'tax', 'clown', 'vampire', 'pirate', 'astro', 'king', 'golden', 'diamond', 'piglet', 'clownjr'];
+const PIG_ORDER = ['pink', 'dots', 'wood', 'runner', 'sleepy', 'porcelain', 'party', 'mafia', 'bomb', 'mama', 'safe', 'crystal', 'robo', 'ghost', 'zombie', 'disco', 'ninja', 'tax', 'clown', 'vampire', 'pirate', 'astro', 'bailiff', 'king', 'golden', 'diamond', 'piglet', 'clownjr'];
 
 // ---------------- HAMMERS ----------------
 const HAMMERS = [
@@ -69,7 +70,7 @@ const hammerStars = (lvl) => Math.min(5, Math.floor(lvl / 5));
 // enchantments are bought in the forge with gems and apply to every hammer
 const ENCHANTS = [
   { id: 'flame', name: 'Flammenschlag', icon: 'fire', color: '#ff7a2a', max: 5, d: (l) => `Treffer setzen Schweine in Brand: ${l * 25}% Schaden/s für 2s`, a: (s, l) => (s.burn += 0.25 * l) },
-  { id: 'vamp', name: 'Vampirschlag', icon: 'heart', color: '#e8304a', max: 5, d: (l) => `Jeder Treffer heilt ${(l * 0.15).toFixed(2)} Ausdauer`, a: (s, l) => (s.vamp += 0.15 * l) },
+  { id: 'vamp', name: 'Vampirschlag', icon: 'heart', color: '#e8304a', max: 5, d: (l) => `Jeder Treffer heilt ${(l * 0.15).toFixed(2)} Ausdauer (max. 1 Balken/Run)`, a: (s, l) => (s.vamp += 0.15 * l) },
   { id: 'echo', name: 'Echo', icon: 'wave', color: '#8ac0ff', max: 5, d: (l) => `${l * 10}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.1 * l) },
   { id: 'goldtouch', name: 'Goldener Schlag', icon: 'coin', color: '#ffd040', max: 5, d: (l) => `Jeder Treffer schlägt Münzen heraus (${l * 4}% Wert)`, a: (s, l) => (s.goldTouch += 0.04 * l) },
   { id: 'shock', name: 'Schockwelle', icon: 'radius', color: '#e8e0ff', max: 5, d: (l) => `Krits lösen eine Schockwelle aus (${l * 40}% Schaden)`, a: (s, l) => (s.shockwave += 0.4 * l) },
@@ -199,14 +200,14 @@ const SKILLS = [
   { id: 'PK', b: 'pink', x: 4, y: 7, req: ['PN', 'PT'], name: 'Königsschwein', icon: 'crown', max: 1, cost: 75000, grow: 1, key: true, unlockPig: 'king', d: () => `Seine Majestät erscheint auf dem Tisch`, a: (s) => s.pigs.add('king') },
 
   // ---- gym: stamina (S) ----
-  { id: 'A1', b: 'gym', x: 0, y: 1, req: ['OO'], name: 'Liegestütze', icon: 'dumbbell', max: 10, cost: 25, grow: 1.55, d: (l) => `+${l * 8} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 8 * l) },
+  { id: 'A1', b: 'gym', x: 0, y: 1, req: ['OO'], name: 'Liegestütze', icon: 'dumbbell', max: 10, cost: 25, grow: 1.55, d: (l) => `+${l * 5} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 5 * l) },
   { id: 'A2', b: 'gym', x: 0, y: 2, req: ['A1'], name: 'Ausdauertraining', icon: 'heart', max: 8, cost: 90, grow: 1.6, d: (l) => `-${l * 5}% Ausdauerkosten pro Schlag`, a: (s, l) => (s.costPct -= 0.05 * l) },
-  { id: 'A3', b: 'gym', x: -1, y: 3, req: ['A2'], name: 'Proteinshake', icon: 'drink', max: 10, cost: 260, grow: 1.6, d: (l) => `+${l * 15} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 15 * l) },
-  { id: 'A4', b: 'gym', x: 1, y: 3, req: ['A2'], name: 'Bankdrücken', icon: 'dumbbell', max: 10, cost: 380, grow: 1.6, d: (l) => `+${l * 12}% max. Ausdauer`, a: (s, l) => (s.staminaPct += 0.12 * l) },
+  { id: 'A3', b: 'gym', x: -1, y: 3, req: ['A2'], name: 'Proteinshake', icon: 'drink', max: 10, cost: 260, grow: 1.6, d: (l) => `+${l * 10} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 10 * l) },
+  { id: 'A4', b: 'gym', x: 1, y: 3, req: ['A2'], name: 'Bankdrücken', icon: 'dumbbell', max: 10, cost: 380, grow: 1.6, d: (l) => `+${l * 8}% max. Ausdauer`, a: (s, l) => (s.staminaPct += 0.08 * l) },
   { id: 'AK', b: 'gym', x: 0, y: 4, req: ['A3', 'A4'], name: 'Zweiter Atem', icon: 'heart', max: 3, cost: 1500, grow: 2.5, key: true, d: (l) => `Einmal pro Run: bei 0 Ausdauer +${l * 20}% zurück`, a: (s, l) => (s.secondWind = Math.max(s.secondWind, 0.2 * l)) },
-  { id: 'A5', b: 'gym', x: -1, y: 5, req: ['AK'], name: 'Erholungs-Schlag', icon: 'heart', max: 10, cost: 3200, grow: 1.6, d: (l) => `+${(l * 0.2).toFixed(1)} Ausdauer pro zerschlagenem Schwein`, a: (s, l) => (s.staminaPerSmash += 0.2 * l) },
-  { id: 'A6', b: 'gym', x: 1, y: 5, req: ['AK'], name: 'Marathon', icon: 'dumbbell', max: 10, cost: 3800, grow: 1.6, d: (l) => `+${l * 30} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 30 * l) },
-  { id: 'AX', b: 'gym', x: 0, y: 6, req: ['A5', 'A6'], name: 'Eiserner Wille', icon: 'fist', max: 1, cost: 30000, grow: 1, key: true, d: () => `Ausdauer sinkt nicht mehr mit der Zeit`, a: (s) => (s.drain = 0) },
+  { id: 'A5', b: 'gym', x: -1, y: 5, req: ['AK'], name: 'Erholungs-Schlag', icon: 'heart', max: 10, cost: 3200, grow: 1.6, d: (l) => `+${(l * 0.2).toFixed(1)} Ausdauer pro zerschlagenem Schwein (max. 1 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.2 * l) },
+  { id: 'A6', b: 'gym', x: 1, y: 5, req: ['AK'], name: 'Marathon', icon: 'dumbbell', max: 10, cost: 3800, grow: 1.6, d: (l) => `+${l * 15} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 15 * l) },
+  { id: 'AX', b: 'gym', x: 0, y: 6, req: ['A5', 'A6'], name: 'Eiserner Wille', icon: 'fist', max: 1, cost: 30000, grow: 1, key: true, d: () => `Ausdauer sinkt nur noch halb so schnell mit der Zeit`, a: (s) => (s.drain *= 0.5) },
 
   // ---- coffee (SW) ----
   { id: 'C1', b: 'coffee', x: -1, y: 1, req: ['OO'], name: 'Espresso', icon: 'coffee', max: 10, cost: 40, grow: 1.6, d: (l) => `+${(l * 0.04).toFixed(2)} Ausdauer/s Regeneration`, a: (s, l) => (s.regen += 0.04 * l) },
@@ -226,7 +227,7 @@ const skillCost = (sk, lvl) => Math.round(sk.cost * Math.pow(sk.grow, lvl));
 // rarity: 1 common, 2 rare, 3 epic
 const PERKS = [
   { id: 'freeze', name: 'Tiefkühltruhe', icon: 'snow', r: 2, max: 3, d: (l) => `Treffer bauen Frost auf: alle Schweine frieren ${(2 + l * 0.5).toFixed(1)}s ein`, a: (s, l) => { s.freeze += 0.04 + 0.01 * l; s.freezeDur += 0.5 * l - 0.5; } },
-  { id: 'recovery', name: 'Erholungs-Schlag', icon: 'heart', r: 1, max: 5, d: (l) => `+${(l * 0.5).toFixed(1)} Ausdauer pro zerschlagenem Schwein`, a: (s, l) => (s.staminaPerSmash += 0.5 * l) },
+  { id: 'recovery', name: 'Erholungs-Schlag', icon: 'heart', r: 1, max: 5, d: (l) => `+${(l * 0.5).toFixed(1)} Ausdauer pro Schwein (max. 1 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.5 * l) },
   { id: 'interest', name: 'Zinssatz', icon: 'percent', r: 1, max: 4, d: (l) => `${l * 5}% deines Ersparten als Bonus pro Tag`, a: (s, l) => (s.interest += 0.05 * l) },
   { id: 'golden', name: 'Goldene Stunde', icon: 'coins', r: 1, max: 10, d: (l) => `+${l * 15}% Münzwert`, a: (s, l) => (s.coinPct += 0.15 * l) },
   { id: 'double', name: 'Doppelschlag', icon: 'hammer', r: 1, max: 5, d: (l) => `${l * 10}% Chance, doppelt zu treffen`, a: (s, l) => (s.double += 0.1 * l) },
@@ -250,11 +251,11 @@ const PERKS = [
   { id: 'thrifty', name: 'Sparfuchs', icon: 'arrow', r: 1, max: 3, d: (l) => `-${l * 10}% Ausdauerkosten pro Schlag`, a: (s, l) => (s.costPct -= 0.1 * l) },
   { id: 'goldrush', name: 'Goldrausch', icon: 'coins', r: 3, max: 2, d: (l) => `${l * 3}% Chance pro Schwein: Goldrausch!`, a: (s, l) => (s.goldRush += 0.03 * l) },
   { id: 'bombs', name: 'Bombenstimmung', icon: 'bomb', r: 2, max: 3, d: (l) => `${l * 5}% Chance: Schweine explodieren beim Zerbrechen`, a: (s, l) => (s.bombChance += 0.05 * l) },
-  { id: 'morning', name: 'Morgenkaffee', icon: 'coffee', r: 1, max: 5, d: (l) => `+${l * 15} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 15 * l) },
+  { id: 'morning', name: 'Morgenkaffee', icon: 'coffee', r: 1, max: 5, d: (l) => `+${l * 10} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 10 * l) },
   { id: 'lightning', name: 'Kettenblitz', icon: 'bolt', r: 2, max: 3, d: (l) => `+${l * 8}% Blitzchance pro Schlag`, a: (s, l) => (s.lightning += 0.08 * l) },
   { id: 'stoneperk', name: 'Felsenfest', icon: 'rock', r: 2, max: 3, d: (l) => `Steinregen freigeschaltet, +${l * 3} Steine`, a: (s, l) => { s.stoneRain = true; s.stones += 3 * l; } },
   { id: 'piggybank', name: 'Sparschwein-Sparschwein', icon: 'pig', r: 3, max: 1, d: () => `Ferkel erscheinen in Rudeln (3-5 auf einmal)`, a: (s) => (s.pigletPacks = true) },
-  { id: 'overtime', name: 'Überstunden', icon: 'hourglass', r: 2, max: 3, d: (l) => `Ausdauer sinkt ${l * 25}% langsamer`, a: (s, l) => (s.drainPct -= 0.25 * l) },
+  { id: 'overtime', name: 'Überstunden', icon: 'hourglass', r: 2, max: 3, d: (l) => `Ausdauer sinkt ${l * 20}% langsamer`, a: (s, l) => (s.drainPct -= 0.2 * l) },
   { id: 'sniper', name: 'Präzisionsschlag', icon: 'eye', r: 2, max: 3, d: (l) => `Einzeltreffer: +${l * 60}% Schaden`, a: (s, l) => (s.single += 0.6 * l) },
   { id: 'gemrain', name: 'Juwelenregen', icon: 'gem', r: 3, max: 2, d: (l) => `Jackpots regnen ${l * 5} Edelsteine`, a: (s, l) => (s.jackpotGems += 5 * l) },
 ];
@@ -307,7 +308,7 @@ function niceRound(n) {
 function billInfo(i) {
   const base = BILLS[i % BILLS.length];
   const loop = Math.floor(i / BILLS.length);
-  const amount = niceRound(30 * Math.pow(1.75, Math.min(i, 5)) * Math.pow(2.05, Math.max(0, i - 5)) * Math.pow(1.02, Math.max(0, i - 15) ** 1.3));
+  const amount = niceRound(30 * Math.pow(1.62, Math.min(i, 10)) * Math.pow(1.85, clamp(i - 10, 0, 6)) * Math.pow(2.1, Math.max(0, i - 16)));
   const days = i < 2 ? 2 : i % 3 === 2 ? 3 : 2;
   return {
     index: i,
@@ -430,6 +431,23 @@ const ACHIEVEMENTS = [
   { id: 'escape', name: 'Die sind weg!', desc: 'Lass 10 Schweine entkommen.', icon: 'arrow', check: (P) => [P.stats.escaped, 10], reward: { gems: 5 } },
   { id: 'tired100', name: 'Muskelkater', desc: 'Spiele 100 Runs.', icon: 'dumbbell', check: (P) => [P.stats.runs, 100], reward: { pp: 10 } },
 ];
+
+// ---------------- DAILY EVENTS ----------------
+// rolled for each new day; modify the final run stats
+const EVENTS = [
+  { id: 'sale', name: 'Schweine-Schlussverkauf', d: '+60% Spawnrate, +2 Schweine', icon: 'piggyPlus', color: '#f08ab0', a: (s) => { s.spawnRate *= 1.6; s.maxPigs += 2; } },
+  { id: 'lucky', name: 'Glückstag', d: 'x3 Jackpots, x2 Raritäten', icon: 'clover', color: '#6fdc5a', a: (s) => { s.jackpotChance = Math.min(0.3, s.jackpotChance * 3); s.rareChance *= 2; } },
+  { id: 'heat', name: 'Hitzewelle', d: '-25% Ausdauer, +50% Münzen', icon: 'fire', color: '#ff7a2a', a: (s) => { s.maxStamina = Math.round(s.maxStamina * 0.75); s.coinMult *= 1.5; } },
+  { id: 'goldfever', name: 'Goldfieber', d: 'Goldschweine tauchen auf!', icon: 'coins', color: '#ffd040', a: (s) => { s.goldenWeight += 3; } },
+  { id: 'coffee', name: 'Kaffee-Lieferung', d: 'Überall Kaffeetassen', icon: 'coffee', color: '#c08a54', a: (s) => { s.coffee += 4; } },
+  { id: 'storm', name: 'Gewitterfront', d: 'Blitze alle 2 Sekunden', icon: 'bolt', color: '#5ae0f0', a: (s) => { s.storm = s.storm ? Math.min(s.storm, 2) : 2; } },
+  { id: 'gems', name: 'Edelstein-Fund', d: 'x3 Edelsteinchance', icon: 'gem', color: '#ff9aa0', a: (s) => { s.gemChance = Math.min(0.8, s.gemChance * 3); } },
+  { id: 'audit', name: 'Steuerprüfung', d: 'Finanzamt da! +80% Münzen', icon: 'calendar', color: '#c8b89a', a: (s) => { s.pigs = new Set(s.pigs); s.pigs.add('tax'); s.coinMult *= 1.8; } },
+  { id: 'piglets', name: 'Ferkel-Invasion', d: 'Ferkel kommen in Rudeln', icon: 'pig', color: '#f9b2c4', a: (s) => { s.pigletPacks = true; s.spawnRate *= 1.3; } },
+  { id: 'focus', name: 'Konzentrierter Tag', d: '+25% Krit-Chance', icon: 'crit', color: '#ffe070', a: (s) => { s.crit = Math.min(1, s.crit + 0.25); } },
+  { id: 'gym', name: 'Gut geschlafen', d: '+40% Ausdauer', icon: 'heart', color: '#ff8a8a', a: (s) => { s.maxStamina = Math.round(s.maxStamina * 1.4); } },
+];
+const EVENT_BY_ID = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 
 // ---------------- BILL'S LINES ----------------
 const LINES = {
