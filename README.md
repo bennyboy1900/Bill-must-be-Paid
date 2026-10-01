@@ -37,9 +37,12 @@ npx serve .
 
 1. **Sparschweine zerschlagen** – In der Holzkiste auf Bills Schreibtisch. Jeder Schlag kostet Ausdauer. Wenn deine Hand müde ist, ist Feierabend.
 2. **Rechnungen bezahlen** – Jede Rechnung hat eine Frist in Tagen (1 Run = 1 Tag). Verpasst du sie: **Bankrott**.
-3. **Perks wählen** – Nach jeder bezahlten Rechnung: Wähle 1 von 3 Karten (Gewöhnlich / Selten / Episch).
-4. **Skillbaum** – Über 90 Knoten in 10 Pfaden: Griffkraft, Handgelenk, Steinregen, Elektro, Frost, Glück, Gier, Schweinezucht, Fitnessstudio, Koffein.
-5. **Bankrott & Prestige** – Neue Rekorde geben Vermächtnispunkte (Rechnung #5 = 5 VP). Gib sie im Schmuckkasten für 20 Ringe und 5 Armbänder aus. Beim Bankrott verlierst du Geld, Skills, Perks und deine Hämmer (zurück zum Holzhammer) – Edelsteine, Verzauberungen, Sammlung und Ringe bleiben.
+   Wer **vor der Frist** zahlt, bekommt **Skonto in Diamanten** (pro übrigem Tag) – steht direkt auf der Rechnung und am Bezahlen-Knopf.
+3. **Perks wählen** – Nach jeder bezahlten Rechnung: Wähle 1 von 3+ Karten (Gewöhnlich / Selten / Episch / Legendär).
+4. **Zwei Skillbäume**
+   - **Geld-Baum** – Über 100 Knoten in 11 Pfaden: Griffkraft, Handgelenk, Steinregen, Elektro, Frost, Glück, Gier, Schweinezucht, Fitnessstudio, Koffein, Feuerwerk. Wird beim Bankrott zurückgesetzt.
+   - **Diamanten-Baum** – 40 dauerhafte Knoten in 6 Pfaden: Werkstatt, Glücksspiel, Buchhaltung, Kondition, Schweinestall, Kartentisch. Kostet Diamanten und bleibt für immer.
+5. **Bankrott & Prestige** – Neue Rekorde geben Vermächtnispunkte (Rechnung #5 = 5 VP). Gib sie im Schmuckkasten für 20 Ringe, 5 Armbänder und 23 **Perk-Karten** aus (zweiter Tab) – freigeschaltete Karten tauchen danach in der Perk-Auswahl auf. Beim Bankrott verlierst du Geld, Geld-Skills, Perks und deine Hämmer (zurück zum Holzhammer) – Diamanten, Diamanten-Skills, Verzauberungen, Sammlung, Ringe und Perk-Karten bleiben.
 
 ## ✨ Inhalte
 
@@ -49,12 +52,12 @@ npx serve .
 - **15 Hämmer** (Holzhammer, Baguette, Bratpfanne, Mjölnir, Banhammer, BEZAHLT-Stempel …) –
   aufwertbar bis Stufe 25 mit **5 Sternen** und leuchtenden Auren (werden beim Bankrott zurückgesetzt)
 - **6 Verzauberungen** in der Schmiede: Flammenschlag, Vampirschlag, Echo-Geisterhammer, Goldener Schlag, Schockwelle, Juwelier
-- **33 Perks**, **20 Ringe + 5 Armbänder**
+- **55 Perks** (23 davon als Perk-Karten mit VP freischaltbar), **20 Ringe + 5 Armbänder**
 - **24 seltene Sammelmünzen** mit dauerhaften Boni und Set-Boni im Münzalbum
-- **Schweinedex**, **35 Erfolge**, Statistiken
-- **Gerichtsvollzieher-Boss** am letzten Tag vor der Fälligkeit und **11 Tagesereignisse** (Hitzewelle, Glückstag, Gewitter, Steuerprüfung …)
+- **Schweinedex**, **39 Erfolge**, Statistiken
+- **Gerichtsvollzieher-Boss** am letzten Tag vor der Fälligkeit und **26 Tagesereignisse** (Ferkel-Flut, Zirkus in der Stadt, Geisterstunde, Silvester, Schwergewichte, Montagmorgen, Razzia, Happy Hour, Hitzewelle, Gewitter …)
 - Jackpots, Goldrausch, Raserei, Party- & Disco-Buffs, Lottoscheine, Kaffee & Energy-Drinks
-- **20 lustige Sonderrechnungen** (Claude-Rechnung, Gartenzwerg-Kaution, Drachen-Versicherung, Katzen-Bestellung …), die zufällig normale Rechnungen ersetzen – gleicher Betrag, gleiche Frist, nur mit Posten-Liste
+- **30 echte Rechnungen** von der Handyrechnung bis zur BER-Nachzahlung und **24 lustige Sonderrechnungen**, die es wirklich gibt (Schlüsseldienst, Minibar, Blitzer-Strafe, Inkasso, Bücherei-Mahnung …) – sie ersetzen zufällig normale Rechnungen, gleicher Betrag, gleiche Frist, mit Posten-Liste
 - Bill mit 9 Gesichtsausdrücken, Sprechblasen und über 60 Sprüchen
 - Juice: Hitstop, Screenshake, Squash-&-Stretch-Federphysik, Sprite-Bruchstücke, Münzregen, Schwungspuren
 

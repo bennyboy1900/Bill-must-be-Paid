@@ -249,7 +249,9 @@ class HubScene {
     this.tabX = 0; this.tabW = 0;
     this.overlay = null;
     this.paper = { y: -260, vy: 0, state: 'in', t: 0, rot: 0, x: 0 };
-    this.tree = new SkillTreeView(this);
+    this.tree = new SkillTreeView(this, TREE_CFG.money);
+    this.gtree = new SkillTreeView(this, TREE_CFG.gems);
+    this.treeSub = o.treeSub || 'money';
     this.forge = new ForgeView(this);
     this.coll = new CollectionView(this);
     this.ach = new AchievementView(this);
@@ -269,7 +271,10 @@ class HubScene {
       else this.speech.say(LINES.cantPay[0] + (Object.keys(P.C.skills).length ? ' ...Moment! Ich könnte Skills verkaufen (75% zurück)!' : ''), 'shocked');
     } else if (P.C.dueDays === 1 && P.C.money < b.amount) this.speech.say(fill(pick(LINES.dueSoon)), 'worried');
     else if (P.C.money >= b.amount * 3 && fromRun) this.speech.say(pick(LINES.rich), 'money');
-    else if (fromRun && P.C.money >= b.amount) this.speech.say('Genug Geld für die ' + b.name + '! Bezahlen?', 'happy');
+    else if (fromRun && P.C.money >= b.amount) {
+      const eg = earlyPayGems(P.C.billIdx, P.C.dueDays);
+      this.speech.say('Genug Geld für die ' + b.name + '!' + (eg ? ` Wenn ich jetzt schon zahle, gibt's ${eg} Diamanten Skonto!` : ' Bezahlen?'), 'happy');
+    }
     else this.speech.say(pick(LINES.hub), 'neutral');
   }
   text(x, y, s, c, o) { this.texts.push(new FloatText(x, y, s, c, o)); }
@@ -299,7 +304,7 @@ class HubScene {
     UI.enabled = !ov;
     // tab content
     if (this.tab === 'bills') this.drawBills(ctx, dt);
-    else if (this.tab === 'tree') this.tree.draw(ctx, dt);
+    else if (this.tab === 'tree') this.drawTrees(ctx, dt);
     else if (this.tab === 'forge') this.forge.draw(ctx, dt);
     else if (this.tab === 'collection') this.coll.draw(ctx, dt);
     else if (this.tab === 'achievements') this.ach.draw(ctx, dt);
@@ -329,7 +334,7 @@ class HubScene {
       const col = act ? '#ffffff' : r.hover ? '#e8d8c0' : '#9a8670';
       Font.draw(ctx, t.name, x, 11 - (r.hover && !act ? 1 : 0), { color: col, bold: true, shadow: 'drop' });
       // notification dot
-      if (t.id === 'tree' && SKILLS.some((s) => skillUnlocked(s) && skillLevel(s.id) < s.max && skillPrice(s) <= P.C.money)) this.dot(ctx, x + w + 3, 8);
+      if (t.id === 'tree' && (this.tree.anyAffordable() || this.gtree.anyAffordable())) this.dot(ctx, x + w + 3, 8);
       if (t.id === 'forge' && this.forge.anyAffordable()) this.dot(ctx, x + w + 3, 8);
       if (t.id === 'bills' && P.C.money >= currentBill().amount) this.dot(ctx, x + w + 3, 8, '#6fd65a');
       if (r.click && !act) { this.tab = t.id; Sound.play('tab'); }
@@ -367,7 +372,10 @@ class HubScene {
     if (UI.button(ctx, 'f_menu', 8, H - 23, 86, 18, 'Hauptmenü', { style: 'ghost' })) Game.goto(new TitleScene());
     if (UI.button(ctx, 'f_set', 100, H - 23, 18, 18, '', { style: 'ghost', icon: GEAR_ICON() })) Game.openSettings();
     // tab specific
-    if (this.tab === 'tree') {
+    if (this.tab === 'tree' && this.treeSub === 'gems') {
+      Font.draw(ctx, 'Diamanten-Skills bleiben auch beim Bankrott!', 132, H - 18, { color: '#ff9aa0' });
+    }
+    if (this.tab === 'tree' && this.treeSub === 'money') {
       const spent = this.tree.spent();
       if (UI.button(ctx, 'f_reset', 130, H - 23, 120, 18, 'Skills zurücksetzen', { style: 'ghost', disabled: spent <= 0, tip: `Erstattet 75% (${money(Math.floor(spent * 0.75))})` })) {
         Game.confirm(`Alle Skills zurücksetzen? Du bekommst ${money(Math.floor(spent * 0.75))} zurück (75%).`, () => this.tree.reset());
@@ -375,7 +383,7 @@ class HubScene {
     }
     if (this.tab === 'bills' && P.C.billIdx > 0) {
       if (UI.button(ctx, 'f_bank', 130, H - 23, 120, 18, 'Bankrott erklären', { style: 'ghost', tip: 'Freiwillig neu starten und Vermächtnispunkte ausgeben.' })) {
-        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills, Perks und Hämmer gehen verloren. Ringe, Edelsteine und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
+        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills, Perks und Hämmer gehen verloren. Ringe, Diamanten, Diamanten-Skills und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
       }
     }
     const due = P.C.dueDays <= 0;
@@ -386,6 +394,21 @@ class HubScene {
     } else if (UI.button(ctx, 'f_go', W - 140, H - 25, 132, 22, label, { style: 'gold', disabled: !this.canStartRun(), key: ' ', keyLabel: 'LEER', onDisabled: () => { this.tab = 'bills'; } })) {
       Game.goto(new RunScene());
     }
+  }
+
+  // ------------------------------------------------------------
+  //  SKILL TREES: money tree (per cycle) and diamond tree (permanent)
+  // ------------------------------------------------------------
+  drawTrees(ctx, dt) {
+    (this.treeSub === 'gems' ? this.gtree : this.tree).draw(ctx, dt);
+    const subs = [['money', 'Geld-Baum', this.tree], ['gems', 'Diamanten-Baum', this.gtree]];
+    subs.forEach(([id, name, view], i) => {
+      const x = 8 + i * 102, y = 36;
+      if (UI.button(ctx, 'ts_' + id, x, y, 98, 18, name, { style: this.treeSub === id ? (id === 'gems' ? 'red' : 'gold') : 'ghost', tip: id === 'gems' ? 'Kostet Diamanten, bleibt dauerhaft' : 'Kostet Geld, wird beim Bankrott zurückgesetzt' })) {
+        if (this.treeSub !== id) { this.treeSub = id; Sound.play('tab'); }
+      }
+      if (this.treeSub !== id && view.anyAffordable()) this.dot(ctx, x + 92, y + 2);
+    });
   }
 
   // ------------------------------------------------------------
@@ -424,7 +447,8 @@ class HubScene {
       if (UI.button(ctx, 'b_not', W / 2 - 104, 294, 100, 26, 'Noch nicht', { style: 'dark', disabled: due, scale: 1, tip: due ? 'Heute fällig!' : 'Erst noch Schweine zerschlagen.' })) {
         Game.goto(new RunScene());
       }
-      if (UI.button(ctx, 'b_pay', W / 2 + 4, 294, 100, 26, 'Bezahlen', { style: canPay ? 'green' : 'dark', disabled: !canPay, tip: canPay ? null : 'Dir fehlen ' + money(b.amount - P.C.money) })) this.payBill();
+      const eg = earlyPayGems(b.index, P.C.dueDays);
+      if (UI.button(ctx, 'b_pay', W / 2 + 4, 294, 100, 26, 'Bezahlen', { style: canPay ? 'green' : 'dark', disabled: !canPay, sub: eg ? `Skonto +${eg}♦` : null, subColor: canPay ? '#d8ffd0' : null, tip: canPay ? (eg ? `Jetzt zahlen: +${eg} Diamanten, weil du ${P.C.dueDays} ${P.C.dueDays === 1 ? 'Tag' : 'Tage'} früher zahlst.` : null) : 'Dir fehlen ' + money(b.amount - P.C.money) })) this.payBill();
     }
     // right column: upcoming bills, today's event, perks
     const rx = W - 186, rw = 176;
@@ -491,28 +515,41 @@ class HubScene {
     ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 33, w - 16, 1);
     Font.draw(ctx, 'Fälliger Betrag', x + w / 2, y + 46, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
     Font.draw(ctx, money(b.amount), x + w / 2, y + 60, { align: 'center', color: ink, shadow: null, scale: 3, bold: true });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 96, w - 16, 1);
-    Font.draw(ctx, 'Fällig in', x + w / 2, y + 106, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 90, w - 16, 1);
+    Font.draw(ctx, 'Fällig in', x + w / 2, y + 97, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
     const dd = P.C.dueDays;
-    Font.draw(ctx, dd <= 0 ? 'HEUTE' : dd === 1 ? '1 Tag' : dd + ' Tagen', x + w / 2, y + 120, { align: 'center', color: dd <= 1 ? '#c0392b' : ink, shadow: null, scale: 2, bold: true });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 146, w - 16, 1);
+    Font.draw(ctx, dd <= 0 ? 'HEUTE' : dd === 1 ? '1 Tag' : dd + ' Tagen', x + w / 2, y + 109, { align: 'center', color: dd <= 1 ? '#c0392b' : ink, shadow: null, scale: 2, bold: true });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 131, w - 16, 1);
     // progress
     const frac = clamp(P.C.money / b.amount, 0, 1);
-    Font.draw(ctx, 'Gespart', x + 12, y + 158, { color: '#6a5a4a', shadow: null });
-    Font.draw(ctx, money(P.C.money) + ' / ' + money(b.amount), x + w - 12, y + 158, { align: 'right', color: frac >= 1 ? '#2a8a30' : '#6a5a4a', shadow: null });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 12, y + 170, w - 24, 8);
-    ctx.fillStyle = frac >= 1 ? '#3aa040' : '#d0902e'; ctx.fillRect(x + 12, y + 170, Math.round((w - 24) * frac), 8);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 12, y + 170, Math.round((w - 24) * frac), 1);
+    Font.draw(ctx, 'Gespart', x + 12, y + 138, { color: '#6a5a4a', shadow: null });
+    Font.draw(ctx, money(P.C.money) + ' / ' + money(b.amount), x + w - 12, y + 138, { align: 'right', color: frac >= 1 ? '#2a8a30' : '#6a5a4a', shadow: null });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 12, y + 150, w - 24, 8);
+    ctx.fillStyle = frac >= 1 ? '#3aa040' : '#d0902e'; ctx.fillRect(x + 12, y + 150, Math.round((w - 24) * frac), 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 12, y + 150, Math.round((w - 24) * frac), 1);
     const miss = b.amount - P.C.money;
-    Font.draw(ctx, miss > 0 ? 'Es fehlen noch ' + money(miss) : 'Genug Geld zum Bezahlen!', x + w / 2, y + 188, { align: 'center', color: miss > 0 ? '#a83a2a' : '#2a8a30', shadow: null, bold: true });
+    Font.draw(ctx, miss > 0 ? 'Es fehlen noch ' + money(miss) : 'Genug Geld zum Bezahlen!', x + w / 2, y + 164, { align: 'center', color: miss > 0 ? '#a83a2a' : '#2a8a30', shadow: null, bold: true });
+    // early payment discount ("Skonto"): gems for every day you pay before the deadline
+    const eg = earlyPayGems(b.index, dd);
+    const sy = y + 178;
+    ctx.fillStyle = eg ? '#dff0d0' : '#ead8c0'; ctx.fillRect(x + 10, sy, w - 20, 25);
+    ctx.strokeStyle = eg ? '#3a9a40' : '#b8a080'; ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]); ctx.strokeRect(x + 10.5, sy + 0.5, w - 21, 24); ctx.setLineDash([]);
+    if (eg) {
+      Font.draw(ctx, 'SKONTO', x + 15, sy + 4, { color: '#2a7a30', shadow: null, bold: true });
+      Font.draw(ctx, `+${eg} ♦`, x + w - 15, sy + 4, { align: 'right', color: '#c0304a', shadow: null, bold: true });
+      Font.draw(ctx, `bei Zahlung ${dd === 1 ? '1 Tag' : dd + ' Tage'} vor Frist`, x + 15, sy + 14, { color: '#5a7a50', shadow: null });
+    } else {
+      Font.draw(ctx, 'KEIN SKONTO', x + 15, sy + 4, { color: '#8a7a6a', shadow: null, bold: true });
+      Font.draw(ctx, 'Früher zahlen gibt Diamanten!', x + 15, sy + 14, { color: '#a8988a', shadow: null });
+    }
     if (b.item) {
       // special bills list what was actually billed
-      ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 200, w - 16, 1);
-      Font.drawWrapped(ctx, 'Posten: ' + b.item, x + 10, y + 206, w - 20, { color: '#6a5a4a', shadow: null });
+      Font.drawWrapped(ctx, 'Posten: ' + b.item, x + 10, y + 209, w - 20, { color: '#6a5a4a', shadow: null, lineHeight: 10 });
     } else Font.draw(ctx, '* BITTE UMGEHEND ÜBERWEISEN', x + w / 2, y + 222, { align: 'center', color: '#a8988a', shadow: null });
     // stamps
-    if (this.paper.state === 'paid') this.stamp(ctx, x + w / 2, y + 120, 'BEZAHLT', '#2a9a3a', this.paper.t);
-    else if (P.C.dueDays <= 0 && P.C.money < b.amount) this.stamp(ctx, x + w / 2, y + 120, 'ÜBERFÄLLIG', '#c0392b', this.t);
+    if (this.paper.state === 'paid') this.stamp(ctx, x + w / 2, y + 110, 'BEZAHLT', '#2a9a3a', this.paper.t);
+    else if (P.C.dueDays <= 0 && P.C.money < b.amount) this.stamp(ctx, x + w / 2, y + 110, 'ÜBERFÄLLIG', '#c0392b', this.t);
   }
   stamp(ctx, cx, cy, text, col, t) {
     const k = t < 0.15 ? 3 - (t / 0.15) * 2 : 1;
@@ -534,6 +571,14 @@ class HubScene {
     P.C.money -= b.amount;
     const refund = Math.floor(b.amount * S.billRefund);
     if (refund) { P.C.money += refund; this.text(W / 2, 200, 'Rückerstattung +' + money(refund), '#9af08a', { big: true }); }
+    // paying before the deadline earns gems
+    const eg = earlyPayGems(b.index, P.C.dueDays), early = P.C.dueDays;
+    if (eg) {
+      P.gems += eg; P.stats.gemsTotal += eg; P.stats.earlyPaid++; P.stats.earlyGems += eg;
+      this.text(W / 2, 224, `Skonto +${eg} ♦`, '#ffb0b8', { big: true, scale: 2, life: 1.6 });
+      setTimeout(() => { UI.toast({ title: 'Frühzahler-Skonto!', text: `+${eg} Diamanten (${early === 1 ? '1 Tag' : early + ' Tage'} vor Frist)`, icon: Art.gem('ruby', 0), color: '#ff9aa0' }); Sound.play('gem'); }, 300);
+      for (let i = 0; i < 12; i++) this.parts.push(new Sparkle(W / 2 + rand(-60, 60), 210 + rand(-20, 20)));
+    }
     this.paper.state = 'paid'; this.paper.t = 0;
     Sound.play('stamp');
     setTimeout(() => Sound.play('pay'), 120);
@@ -544,9 +589,10 @@ class HubScene {
     this.text(W / 2, 100, '-' + money(b.amount), '#ff8a6a', { big: true, scale: 2, life: 1.2 });
     const n = b.index + 1;
     if (n > P.record) {
-      addPP(n - 0);
+      const vp = Math.ceil(n * (1 + S.ppBonus));
+      addPP(vp);
       P.record = n;
-      setTimeout(() => { UI.toast({ title: 'Neuer Rekord: Rechnung #' + n, text: `+${n} Vermächtnispunkte`, icon: Art.icon('star'), color: '#c8a0ff' }); Sound.play('record'); }, 600);
+      setTimeout(() => { UI.toast({ title: 'Neuer Rekord: Rechnung #' + n, text: `+${vp} Vermächtnispunkte`, icon: Art.icon('star'), color: '#c8a0ff' }); Sound.play('record'); }, 600);
     }
     this.speech.say(pick(LINES.paid), 'money');
     P.C.pendingPerks = rollPerks(S.perkChoices);
@@ -562,6 +608,7 @@ class HubScene {
     const nb = currentBill();
     P.C.dueDays = nb.days + stats().dueBonus;
     P.C.pendingPerks = null;
+    P.C.rerolls = 0;
     saveGame();
     invalidateStats();
     this.overlay = null;
@@ -587,9 +634,9 @@ function GEAR_ICON() {
 // ============================================================
 function rollPerks(n) {
   const S = stats();
-  const pool = PERKS.filter((p) => (P.C.perks[p.id] || 0) < p.max);
+  const pool = PERKS.filter((p) => perkUnlocked(p) && (P.C.perks[p.id] || 0) < p.max);
   const out = [];
-  const w = (p) => ({ 1: 60, 2: 28, 3: 10 }[p.r]) * (p.r > 1 ? Math.sqrt(S.luck) : 1);
+  const w = (p) => ({ 1: 60, 2: 28, 3: 10, 4: 3 }[p.r]) * (p.r > 1 ? Math.sqrt(S.luck) * (1 + S.perkLuck) : 1);
   while (out.length < n && pool.length) {
     const p = weightedPick(pool, w);
     out.push(p.id);
@@ -625,7 +672,7 @@ class PerkPicker {
     const tk = Ease.outBack(clamp(t / 0.4, 0, 1));
     Font.drawScaled(ctx, 'WÄHLE EINEN', W / 2, 44, tk, { scale: 3, color: '#e0a84a', shadow: 'thick', gradient: GOLD_GRAD });
     const n = this.ids.length;
-    const cw = 126, ch = 182, gap = 14;
+    const gap = n > 4 ? 8 : 14, cw = Math.min(126, Math.floor((W - 24 - (n - 1) * gap) / n)), ch = 182;
     const total = n * cw + (n - 1) * gap;
     const x0 = W / 2 - total / 2;
     for (let i = 0; i < n; i++) {
@@ -666,11 +713,13 @@ class PerkPicker {
       if (front && r.hover && Input.key(String(i + 1))) { /* keyboard shortcut handled below */ }
       if (front && Input.key(String(i + 1)) && this.chosen < 0 && flipP >= 1) { this.chosen = i; this.chosenT = 0; Sound.play('unlock'); }
     }
-    // reroll for gems
+    // reroll for gems (the diamond tree grants a few free ones per bill)
     if (this.chosen < 0 && t > 1) {
-      const cost = 5;
-      if (UI.button(ctx, 'reroll', W / 2 - 60, H - 40, 120, 22, `Neu mischen  ${cost}♦`, { style: 'dark', disabled: P.gems < cost })) {
+      const free = (P.C.rerolls || 0) < stats().freeRerolls;
+      const cost = free ? 0 : 5;
+      if (UI.button(ctx, 'reroll', W / 2 - 60, H - 40, 120, 22, free ? 'Neu mischen  GRATIS' : `Neu mischen  ${cost}♦`, { style: free ? 'green' : 'dark', disabled: P.gems < cost })) {
         P.gems -= cost;
+        P.C.rerolls = (P.C.rerolls || 0) + 1;
         this.ids = rollPerks(stats().perkChoices);
         P.C.pendingPerks = this.ids;
         saveGame();
@@ -694,7 +743,7 @@ class PerkPicker {
     }
     UI.panel(ctx, 0, 0, w, h, { fill: '#120b08', border: rc, glow: true });
     ctx.fillStyle = '#2a1a12'; ctx.fillRect(3, 3, w - 6, 20);
-    Font.draw(ctx, pk.name, w / 2, 9, { align: 'center', color: '#f0d8b0', bold: Font.measure(pk.name, 1, true) < w - 10 });
+    Font.draw(ctx, Font.fit(pk.name, w - 8), w / 2, 9, { align: 'center', color: '#f0d8b0', bold: Font.measure(pk.name, 1, true) < w - 10 });
     // icon with glow
     const g = ctx.createRadialGradient(w / 2, 60, 2, w / 2, 60, 34);
     g.addColorStop(0, rc + '88'); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -746,7 +795,7 @@ class BankruptScene {
         Font.draw(ctx, a, W / 2 - 30, 160 + i * 18, { color: '#c8b8a0', alpha: a2 });
         Font.draw(ctx, String(b), W / 2 + 200, 160 + i * 18, { align: 'right', color: i === 5 ? '#c8a0ff' : '#ffffff', alpha: a2, bold: i === 5 });
       });
-      Font.drawWrapped(ctx, 'Geld, Skills, Perks und Hämmer sind weg. Edelsteine, Verzauberungen, Sammlung und Ringe bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 290, 260, { color: '#8a7a6a' });
+      Font.drawWrapped(ctx, 'Geld, Skills, Perks und Hämmer sind weg. Diamanten, Diamanten-Skills, Verzauberungen, Sammlung, Ringe und Perk-Karten bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 286, 260, { color: '#8a7a6a' });
     }
     if (t > 2 && UI.button(ctx, 'bk_go', W - 150, H - 36, 140, 26, 'Zum Schmuckkasten', { style: 'gold', key: ' ', keyLabel: 'LEER' })) Game.goto(new PrestigeScene());
   }
@@ -756,12 +805,124 @@ class BankruptScene {
 //  PRESTIGE: ring box
 // ============================================================
 class PrestigeScene {
-  constructor() { this.t = 0; this.parts = []; this.fx = []; this.sel = null; this.amb = new Ambience(25); }
+  constructor() { this.t = 0; this.parts = []; this.fx = []; this.sel = null; this.selPerk = null; this.tab = 'jewels'; this.amb = new Ambience(25); }
   enter() { Sound.Music.play('menu'); }
   update(dt) { this.t += dt; this.parts = this.parts.filter((p) => p.update(dt)); this.fx = this.fx.filter((p) => p.update(dt)); }
   draw(ctx, dt) {
     backdrop(ctx, 0.8);
     this.amb.draw(ctx, dt);
+    if (this.tab === 'perks') this.drawPerkShop(ctx, dt);
+    else this.drawJewelBox(ctx, dt);
+    // tabs: jewellery and perk cards
+    const tabs = [['jewels', 'Schmuck'], ['perks', 'Perk-Karten']];
+    tabs.forEach(([id, n], i) => {
+      if (UI.button(ctx, 'pt_' + id, 8 + i * 84, 8, 80, 20, n, { style: this.tab === id ? 'gold' : 'ghost' }) && this.tab !== id) { this.tab = id; Sound.play('tab'); }
+    });
+    const cheap = VP_PERKS.some((pk) => !P.perkUnlocks[pk.id] && P.pp >= pk.vp);
+    if (cheap && this.tab !== 'perks') {
+      ctx.globalAlpha = 0.7 + Math.sin(this.t * 6) * 0.3;
+      ctx.fillStyle = '#1a0e0c'; ctx.fillRect(8 + 84 + 73, 9, 5, 5);
+      ctx.fillStyle = '#ff4a3a'; ctx.fillRect(8 + 84 + 74, 10, 3, 3);
+      ctx.globalAlpha = 1;
+    }
+    // PP
+    UI.panel(ctx, W - 110, 6, 102, 22, { fill: '#2a1a2a', border: '#8a6ab0' });
+    Font.draw(ctx, P.pp + ' VP', W - 16, 12, { align: 'right', color: '#e0c8ff', bold: true });
+    ctx.drawImage(Art.icon('star'), W - 104, 11);
+    for (const f of this.fx) f.draw(ctx);
+    for (const p of this.parts) p.draw(ctx);
+    // buttons
+    if (this.tab === 'jewels' && UI.button(ctx, 'pr_reset', 8, H - 34, 130, 26, 'Punkte zurücksetzen', { style: 'dark', tip: 'Alle Ringe & Armbänder zurückgeben, VP erstattet.' })) {
+      let refund = 0;
+      for (const id of P.rings) refund += RINGS.find((r) => r.id === id).cost;
+      for (const id of P.bracelets) refund += BRACELETS.find((r) => r.id === id).cost;
+      P.pp += refund; P.rings = []; P.bracelets = []; P.ringsEq = []; P.braceEq = [];
+      saveGame(); Sound.play('back');
+    }
+    if (UI.button(ctx, 'pr_go', W - 150, H - 34, 142, 26, `Zyklus ${P.cycle + 1} starten`, { style: 'gold' })) this.startCycle();
+  }
+
+  // ---------- perk cards: unlocked once with VP, then they can show up after every paid bill ----------
+  drawPerkShop(ctx, dt) {
+    const bx = W / 2 - 150, by = 34, bw = 300, bh = 300;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx + 6, by + 8, bw, bh);
+    UI.panel(ctx, bx, by, bw, bh, { fill: '#5a3420', border: '#2a160c', edge: '#120806' });
+    for (let y = by + 4; y < by + bh - 4; y += 3) { ctx.fillStyle = (y * 7) % 5 === 0 ? 'rgba(0,0,0,0.12)' : 'rgba(255,200,150,0.03)'; ctx.fillRect(bx + 3, y, bw - 6, 1); }
+    Font.draw(ctx, 'KARTENSAMMLUNG', W / 2, by + 10, { align: 'center', color: '#e0a84a', bold: true, scale: 2 });
+    // green card table felt
+    const vx = bx + 12, vy = by + 32, vw = bw - 24, vh = bh - 44;
+    ctx.fillStyle = '#1c4428'; ctx.fillRect(vx, vy, vw, vh);
+    for (let i = 0; i < 400; i++) { ctx.fillStyle = i % 2 ? 'rgba(140,255,170,0.04)' : 'rgba(0,0,0,0.12)'; ctx.fillRect(vx + hash2(i, 5) * vw, vy + hash2(i, 6) * vh, 1, 1); }
+    ctx.fillStyle = '#0e2414'; ctx.fillRect(vx, vy, vw, 2);
+    const cols = 6, cw = 42, ch = 58, gap = 3;
+    const x0 = vx + Math.floor((vw - (cols * cw + (cols - 1) * gap)) / 2), y0 = vy + 8;
+    let hovered = null;
+    VP_PERKS.forEach((pk, i) => {
+      const x = x0 + (i % cols) * (cw + gap), y = y0 + Math.floor(i / cols) * (ch + gap);
+      const owned = !!P.perkUnlocks[pk.id];
+      const afford = P.pp >= pk.vp;
+      const reg = UI.region('pc_' + pk.id, x, y, cw, ch);
+      if (reg.hover) hovered = pk;
+      const rc = RARITY[pk.r].color;
+      const lift = reg.hover ? 2 : 0;
+      if (owned) {
+        const g = ctx.createRadialGradient(x + cw / 2, y + 20, 1, x + cw / 2, y + 20, 26);
+        g.addColorStop(0, rc + '66'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.fillRect(x - 4, y - 4, cw + 8, ch);
+      }
+      UI.panel(ctx, x, y - lift, cw, ch, { fill: owned ? '#120b08' : '#1a1410', border: owned || afford || reg.hover ? rc : '#4a3e36', shadow: !owned });
+      ctx.globalAlpha = owned ? 1 : afford || reg.hover ? 0.85 : 0.45;
+      ctx.drawImage(owned ? Art.icon(pk.icon, 2) : Art.iconGray(pk.icon), x + cw / 2 - 12, y + 10 - lift, 24, 24);
+      ctx.globalAlpha = 1;
+      // rarity pips
+      for (let k = 0; k < pk.r; k++) { ctx.fillStyle = owned || afford ? rc : '#4a3e36'; ctx.fillRect(x + cw / 2 - pk.r * 3 + k * 6 + 1, y + 5 - lift, 4, 2); }
+      ctx.fillStyle = '#3a2a20'; ctx.fillRect(x + 6, y + 39 - lift, cw - 12, 1);
+      if (owned) Font.draw(ctx, '✓', x + cw / 2, y + 44 - lift, { align: 'center', color: '#9af08a', bold: true });
+      else Font.draw(ctx, pk.vp + ' VP', x + cw / 2, y + 44 - lift, { align: 'center', color: afford ? '#e8c8ff' : '#7a5a6a', bold: afford });
+      if (owned && chance(0.01)) this.parts.push(new Sparkle(x + rand(cw), y + rand(ch)));
+      if (reg.click) {
+        if (owned) Sound.play('click');
+        else if (afford) {
+          P.pp -= pk.vp; P.perkUnlocks[pk.id] = true;
+          Sound.play('unlock');
+          for (let k = 0; k < 18; k++) this.parts.push(new Sparkle(x + rand(cw), y + rand(ch)));
+          this.fx.push(new Ring(x + cw / 2, y + ch / 2, 40, rc, 0.4, 2));
+          UI.toast({ title: 'Perk-Karte freigeschaltet!', text: pk.name + ' ist jetzt in der Auswahl', icon: Art.icon(pk.icon), color: rc });
+          saveGame();
+          checkAchievements();
+        } else Sound.play('error');
+      }
+    });
+    if (hovered) this.selPerk = hovered;
+    // details on the left
+    const pk = this.selPerk;
+    if (!pk) {
+      UI.panel(ctx, 8, 40, 168, 70, { fill: 'rgba(20,12,10,0.9)', border: '#5a4030' });
+      Font.drawWrapped(ctx, 'Fahre über eine Karte. Klicken schaltet sie mit Vermächtnispunkten frei.', 16, 48, 152, { color: '#a8927a' });
+    } else {
+      const owned = !!P.perkUnlocks[pk.id];
+      const rc = RARITY[pk.r].color;
+      const d1 = Font.wrap(pk.d(1), 152), dm = pk.max > 1 ? Font.wrap('Max. (Stufe ' + pk.max + '): ' + pk.d(pk.max), 152) : [];
+      const h = 64 + (d1.length + dm.length) * 10 + (dm.length ? 4 : 0);
+      UI.panel(ctx, 8, 40, 168, h, { fill: 'rgba(20,12,10,0.95)', border: rc });
+      ctx.drawImage(Art.icon(pk.icon), 16, 49);
+      Font.draw(ctx, Font.fit(pk.name, 130, 1, true), 32, 50, { color: '#ffe0a0', bold: true });
+      Font.draw(ctx, RARITY[pk.r].name + (pk.max > 1 ? ` · bis Stufe ${pk.max}` : ''), 16, 64, { color: rc });
+      let yy = 78;
+      d1.forEach((l) => { Font.draw(ctx, l, 16, yy, { color: '#f3e6cf' }); yy += 10; });
+      if (dm.length) { yy += 4; dm.forEach((l) => { Font.draw(ctx, l, 16, yy, { color: '#a8927a' }); yy += 10; }); }
+      Font.draw(ctx, owned ? '✓ Freigeschaltet' : `Kosten: ${pk.vp} VP`, 16, yy + 4, { color: owned ? '#9af08a' : P.pp >= pk.vp ? '#e8c8ff' : '#ff8a6a', bold: true });
+    }
+    // info on the right
+    const have = VP_PERKS.filter((p) => P.perkUnlocks[p.id]).length;
+    UI.panel(ctx, W - 176, 40, 168, 136, { fill: 'rgba(20,12,10,0.9)', border: '#5a4030' });
+    Font.draw(ctx, 'Perk-Karten', W - 168, 46, { color: '#e0a84a', bold: true });
+    Font.draw(ctx, `${have}/${VP_PERKS.length}`, W - 16, 46, { align: 'right', color: '#8a7a6a' });
+    UI.bar(ctx, W - 168, 58, 152, 3, have / VP_PERKS.length, '#c07af0');
+    Font.drawWrapped(ctx, 'Einmal mit VP freischalten, für immer behalten: Freigeschaltete Karten können nach jeder bezahlten Rechnung in der Auswahl auftauchen.', W - 168, 68, 156, { color: '#d8c8b0' });
+  }
+
+  drawJewelBox(ctx, dt) {
     const bx = W / 2 - 150, by = 34, bw = 300, bh = 300;
     // box lid & body
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx + 6, by + 8, bw, bh);
@@ -786,14 +947,10 @@ class PrestigeScene {
     // equipped summary
     const eq = P.ringsEq.length, eb = P.braceEq.length;
     Font.draw(ctx, `Angelegt: Ringe ${eq}/${RING_SLOTS}  ·  Armbänder ${eb}/${BRACELET_SLOTS}`, W / 2, dy + 62, { align: 'center', color: '#e8c8a0' });
-    // PP
-    UI.panel(ctx, W - 110, 6, 102, 22, { fill: '#2a1a2a', border: '#8a6ab0' });
-    Font.draw(ctx, P.pp + ' VP', W - 16, 12, { align: 'right', color: '#e0c8ff', bold: true });
-    ctx.drawImage(Art.icon('star'), W - 104, 11);
     // info
     UI.panel(ctx, W - 176, 40, 168, 118, { fill: 'rgba(20,12,10,0.9)', border: '#5a4030' });
     Font.draw(ctx, 'Info', W - 168, 46, { color: '#e0a84a', bold: true });
-    Font.drawWrapped(ctx, 'Vermächtnispunkte (VP) gibt es für neue Rekorde: Bezahlst du eine Rechnung tiefer als je zuvor, erhältst du ihre Nummer in VP (Rechnung #5 = 5 VP).', W - 168, 60, 156, { color: '#d8c8b0' });
+    Font.drawWrapped(ctx, 'VP gibt es für neue Rekorde: Rechnung #5 zum ersten Mal bezahlt = 5 VP. Ausgeben für Ringe, Armbänder und Perk-Karten.', W - 168, 60, 156, { color: '#d8c8b0' });
     // selected info panel
     const s = this.sel;
     if (!s) {
@@ -810,17 +967,6 @@ class PrestigeScene {
       const owned = (s.kind === 'ring' ? P.rings : P.bracelets).includes(s.r.id);
       Font.draw(ctx, owned ? 'Besitz · Klicken zum An-/Ablegen' : `Kosten: ${s.r.cost} VP`, 16, 124, { color: owned ? '#8ac0ff' : P.pp >= s.r.cost ? '#9af08a' : '#ff8a6a' });
     }
-    for (const f of this.fx) f.draw(ctx);
-    for (const p of this.parts) p.draw(ctx);
-    // buttons
-    if (UI.button(ctx, 'pr_reset', 8, H - 34, 130, 26, 'Punkte zurücksetzen', { style: 'dark', tip: 'Alle Ringe & Armbänder zurückgeben, VP erstattet.' })) {
-      let refund = 0;
-      for (const id of P.rings) refund += RINGS.find((r) => r.id === id).cost;
-      for (const id of P.bracelets) refund += BRACELETS.find((r) => r.id === id).cost;
-      P.pp += refund; P.rings = []; P.bracelets = []; P.ringsEq = []; P.braceEq = [];
-      saveGame(); Sound.play('back');
-    }
-    if (UI.button(ctx, 'pr_go', W - 150, H - 34, 142, 26, `Zyklus ${P.cycle + 1} starten`, { style: 'gold' })) this.startCycle();
   }
   drawJewel(ctx, r, x, y, w, h, kind) {
     const owned = (kind === 'ring' ? P.rings : P.bracelets).includes(r.id);
