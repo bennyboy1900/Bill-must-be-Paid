@@ -647,11 +647,13 @@ class Loot {
     }
     return true;
   }
+  // valuable gems (5+) are shown twice as big instead of in another colour
+  get scale() { return this.kind === 'gem' && this.value >= 5 ? 2 : 1; }
   sprite() {
     const f = Math.floor(this.spin) % 6;
     if (this.kind === 'coin') return Art.coin(this.o.metal, f);
     if (this.kind === 'cash') return Art.cash();
-    if (this.kind === 'gem') return Art.gem(this.o.gem, Math.floor(this.spin / 2));
+    if (this.kind === 'gem') return Art.gem('ruby', Math.floor(this.spin / 2)); // one gem colour everywhere
     if (this.kind === 'rare') return Art.rareCoin(RARE_BY_ID[this.o.id], 12);
     return Art.coin('gold', f);
   }
@@ -665,11 +667,12 @@ class Loot {
     if (this.kind === 'rare' || this.kind === 'gem') {
       // glow
       ctx.globalAlpha = 0.35 + Math.sin(this.t * 10) * 0.15;
-      ctx.fillStyle = this.kind === 'rare' ? RARITY[RARE_BY_ID[this.o.id].r].color : Art.GEMS[this.o.gem].l;
-      ctx.beginPath(); ctx.arc(sp(this.x), sp(this.y - this.z - s.height / 2), s.width * 0.9, 0, TAU); ctx.fill();
+      ctx.fillStyle = this.kind === 'rare' ? RARITY[RARE_BY_ID[this.o.id].r].color : Art.GEMS.ruby.l;
+      ctx.beginPath(); ctx.arc(sp(this.x), sp(this.y - this.z - (s.height * this.scale) / 2), s.width * this.scale * 0.9, 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    ctx.drawImage(s, sp(this.x - s.width / 2), sp(this.y - this.z - s.height));
+    const k = this.scale;
+    ctx.drawImage(s, sp(this.x - (s.width * k) / 2), sp(this.y - this.z - s.height * k), s.width * k, s.height * k);
   }
 }
 
@@ -1382,7 +1385,7 @@ class RunScene {
       } else if (roll < 0.7) {
         const k = randi(3, 8);
         for (let i = 0; i < k; i++) this.loot.push(new Loot(this, it.x, it.y - 6, 6, 'gem', 2, { gem: pick(['emerald', 'sapphire', 'ruby']) }));
-        this.text(it.x, it.y - 24, 'Edelsteine!', '#8ae8ff', { big: true });
+        this.text(it.x, it.y - 24, 'Edelsteine!', '#ff9aa0', { big: true });
         Sound.play('gem');
       } else if (roll < 0.85) {
         const r = weightedPick(RARE_COINS, (c) => RARE_WEIGHTS[c.r]);
@@ -1508,7 +1511,7 @@ class RunScene {
         { label: 'Kritische Treffer', val: r.crits },
         { label: 'Beste Combo', val: r.maxCombo },
         { label: 'Jackpots', val: r.jackpots, hide: !r.jackpots, col: '#ffb020' },
-        { label: 'Edelsteine', val: r.gems, gem: true, col: '#8ae8ff' },
+        { label: 'Edelsteine', val: r.gems, gem: true, col: '#ff9aa0' },
       ].filter((x) => !x.hide),
       t: 0,
       total: r.earned + bonus + interest,

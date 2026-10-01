@@ -74,7 +74,7 @@ const ENCHANTS = [
   { id: 'echo', name: 'Echo', icon: 'wave', color: '#8ac0ff', max: 5, d: (l) => `${l * 10}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.1 * l) },
   { id: 'goldtouch', name: 'Goldener Schlag', icon: 'coin', color: '#ffd040', max: 5, d: (l) => `Jeder Treffer schlägt Münzen heraus (${l * 4}% Wert)`, a: (s, l) => (s.goldTouch += 0.04 * l) },
   { id: 'shock', name: 'Schockwelle', icon: 'radius', color: '#e8e0ff', max: 5, d: (l) => `Krits lösen eine Schockwelle aus (${l * 40}% Schaden)`, a: (s, l) => (s.shockwave += 0.4 * l) },
-  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#5ae0f0', max: 5, d: (l) => `+${l * 20}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
+  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#ff9aa0', max: 5, d: (l) => `+${l * 20}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
 ];
 const enchantCost = (lvl) => Math.round(18 * Math.pow(2, lvl));
 // completing every coin of a rarity grants a set bonus
