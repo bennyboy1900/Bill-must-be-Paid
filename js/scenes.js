@@ -292,7 +292,8 @@ class HubScene {
   }
 
   draw(ctx, dt) {
-    backdrop(ctx, 0.62);
+    // the bills tab keeps the cosy desk visible, other tabs get a calmer backdrop
+    backdrop(ctx, this.tab === 'bills' ? 0.7 : 0.84);
     this.amb.draw(ctx, dt);
     const ov = !!this.overlay;
     UI.enabled = !ov;
@@ -349,7 +350,7 @@ class HubScene {
     UI.panel(ctx, W - 150, 3, 56, 16, { fill: '#2a1d17', border: '#6a4a30' });
     ctx.drawImage(Art.gem('ruby', Math.floor(this.t * 3) % 4), W - 147, 6);
     Font.draw(ctx, fmt(Math.round(this.dispGems)), W - 99, 7, { align: 'right', color: '#ffb0b8', bold: true });
-    if (P.pp > 0 || P.cycle > 1) Font.draw(ctx, `${P.pp} VP`, W - 10, 21, { align: 'right', color: '#c8a0ff' });
+    if (P.pp > 0 || P.cycle > 1 || P.record > 0) Font.draw(ctx, (P.record > 0 ? `Rekord #${P.record}  ·  ` : '') + `${P.pp} VP`, W - 10, 21, { align: 'right', color: '#c8a0ff' });
   }
   dot(ctx, x, y, col = '#ff4a3a') {
     const a = 0.7 + Math.sin(this.t * 6) * 0.3;
@@ -374,7 +375,7 @@ class HubScene {
     }
     if (this.tab === 'bills' && P.C.billIdx > 0) {
       if (UI.button(ctx, 'f_bank', 130, H - 23, 120, 18, 'Bankrott erklären', { style: 'ghost', tip: 'Freiwillig neu starten und Vermächtnispunkte ausgeben.' })) {
-        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills und Perks gehen verloren. Ringe, Hämmer und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
+        Game.confirm('Freiwillig Bankrott anmelden? Geld, Skills, Perks und Hämmer gehen verloren. Ringe, Edelsteine und Sammlung bleiben.', () => Game.goto(new BankruptScene()));
       }
     }
     const due = P.C.dueDays <= 0;
@@ -425,46 +426,52 @@ class HubScene {
       }
       if (UI.button(ctx, 'b_pay', W / 2 + 4, 294, 100, 26, 'Bezahlen', { style: canPay ? 'green' : 'dark', disabled: !canPay, tip: canPay ? null : 'Dir fehlen ' + money(b.amount - P.C.money) })) this.payBill();
     }
-    // right column: upcoming + perks
-    const rx = W - 186;
-    UI.panel(ctx, rx, 40, 176, 96, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
-    Font.draw(ctx, 'Kommende Rechnungen', rx + 8, 46, { color: '#e0a84a', bold: true });
+    // right column: upcoming bills, today's event, perks
+    const rx = W - 186, rw = 176;
+    let ry = 40;
+    UI.panel(ctx, rx, ry, rw, 84, { fill: 'rgba(30,20,16,0.92)', border: '#5a4030' });
+    Font.draw(ctx, 'Danach fällig', rx + 8, ry + 6, { color: '#e0a84a', bold: true });
     for (let i = 1; i <= 3; i++) {
       const nb = billInfo(P.C.billIdx + i);
-      const y = 60 + (i - 1) * 24;
-      ctx.globalAlpha = 1 - i * 0.18;
-      Font.draw(ctx, `#${nb.index + 1} ${nb.name}`, rx + 8, y, { color: '#d8c8b0' });
-      Font.draw(ctx, money(nb.amount), rx + 168, y + 10, { align: 'right', color: '#ff9a7a' });
-      Font.draw(ctx, `${nb.days + stats().dueBonus} Tage`, rx + 8, y + 10, { color: '#7a6a5a' });
-      ctx.globalAlpha = 1;
+      const y = ry + 20 + (i - 1) * 21;
+      const a = i === 1 ? 1 : 0.7;
+      Font.draw(ctx, Font.fit(`#${nb.index + 1} ${nb.name}`, rw - 60), rx + 8, y, { color: '#d8c8b0', alpha: a });
+      Font.draw(ctx, money(nb.amount), rx + rw - 8, y, { align: 'right', color: '#ff9a7a', alpha: a });
+      Font.draw(ctx, `Frist: ${nb.days + stats().dueBonus} Tage`, rx + 8, y + 9, { color: '#7a6a5a', alpha: a });
     }
+    ry += 90;
     // today's event
     const ev = P.C.event ? EVENT_BY_ID[P.C.event] : null;
-    UI.panel(ctx, rx, 140, 176, 36, { fill: ev ? '#2a2016' : 'rgba(30,20,16,0.85)', border: ev ? ev.color : '#5a4030' });
     if (ev) {
-      ctx.drawImage(Art.icon(ev.icon), rx + 8, 152 + Math.round(Math.sin(this.t * 4)));
-      Font.draw(ctx, 'HEUTE: ' + ev.name, rx + 26, 146, { color: ev.color, bold: true });
-      Font.draw(ctx, ev.d, rx + 26, 158, { color: '#d8c8b0' });
+      const head = Font.wrap('Heute: ' + ev.name, rw - 34, 1, true), lines = Font.wrap(ev.d, rw - 34);
+      const eh = 10 + (head.length + lines.length) * 10;
+      UI.panel(ctx, rx, ry, rw, eh, { fill: '#2a2016', border: ev.color });
+      ctx.drawImage(Art.icon(ev.icon), rx + 8, ry + Math.round(eh / 2 - 6) + Math.round(Math.sin(this.t * 4)));
+      head.forEach((l, i) => Font.draw(ctx, l, rx + 26, ry + 6 + i * 10, { color: ev.color, bold: true }));
+      lines.forEach((l, i) => Font.draw(ctx, l, rx + 26, ry + 6 + (head.length + i) * 10, { color: '#d8c8b0' }));
+      ry += eh + 6;
     } else {
-      Font.draw(ctx, 'Heute: ein ganz normaler Tag.', rx + 8, 146, { color: '#7a6a5a' });
-      Font.draw(ctx, 'Ereignisse ab Tag 3', rx + 8, 158, { color: '#5a4a3e' });
+      UI.panel(ctx, rx, ry, rw, 22, { fill: 'rgba(30,20,16,0.92)', border: '#5a4030' });
+      Font.draw(ctx, P.C.day < 3 ? 'Ereignisse ab Tag 3' : 'Heute: ein normaler Tag', rx + 8, ry + 7, { color: '#7a6a5a' });
+      ry += 28;
     }
-    UI.panel(ctx, rx, 180, 176, 110, { fill: 'rgba(30,20,16,0.85)', border: '#5a4030' });
-    Font.draw(ctx, 'Deine Perks', rx + 8, 186, { color: '#e0a84a', bold: true });
+    // perks
     const owned = Object.keys(P.C.perks).filter((k) => P.C.perks[k] > 0);
-    if (!owned.length) Font.drawWrapped(ctx, 'Bezahle Rechnungen, um Perks freizuschalten!', rx + 8, 202, 160, { color: '#7a6a5a' });
+    const perRow = 8, prow = Math.max(1, Math.ceil(owned.length / perRow));
+    const ph = owned.length ? 26 + prow * 21 : 44;
+    UI.panel(ctx, rx, ry, rw, ph, { fill: 'rgba(30,20,16,0.92)', border: '#5a4030' });
+    Font.draw(ctx, 'Deine Perks', rx + 8, ry + 6, { color: '#e0a84a', bold: true });
+    if (owned.length) Font.draw(ctx, String(owned.length), rx + rw - 8, ry + 6, { align: 'right', color: '#7a6a5a' });
+    if (!owned.length) Font.drawWrapped(ctx, 'Bezahle Rechnungen, um Perks zu bekommen.', rx + 8, ry + 19, rw - 16, { color: '#7a6a5a' });
     owned.forEach((id, i) => {
       const pk = PERK_BY_ID[id];
-      const x = rx + 7 + (i % 8) * 20.5, y = 198 + Math.floor(i / 8) * 21;
+      const x = rx + 7 + (i % perRow) * 20.5, y = ry + 19 + Math.floor(i / perRow) * 21;
       const r = UI.region('perk_' + id, x, y, 18, 18);
       UI.panel(ctx, x, y - (r.hover ? 1 : 0), 18, 18, { fill: '#1a110d', border: RARITY[pk.r].color, shadow: false });
       ctx.drawImage(Art.icon(pk.icon), Math.round(x + 3), y + 3 - (r.hover ? 1 : 0));
       if (P.C.perks[id] > 1) Font.draw(ctx, String(P.C.perks[id]), x + 17, y + 11, { align: 'right', color: '#ffffff', shadow: 'outline' });
       if (r.hover) UI.tooltip([{ t: pk.name, c: RARITY[pk.r].color }, `Stufe ${P.C.perks[id]}/${pk.max}`, pk.d(P.C.perks[id])]);
     });
-    // record
-    Font.draw(ctx, `Rekord: Rechnung #${P.record}`, rx + 8, 278, { color: '#a888d8' });
-
   }
 
   drawPaper(ctx, x, y, b) {
@@ -477,26 +484,32 @@ class HubScene {
     ctx.fillStyle = '#c8b090'; ctx.fillRect(x + w - 1, y, 1, h);
     ctx.fillStyle = '#a02020'; ctx.fillRect(x, y + h - 3, w, 3);
     const ink = '#2a1a14';
-    Font.draw(ctx, b.name, x + 10, y + 10, { color: ink, shadow: null, bold: true });
+    Font.draw(ctx, Font.fit(b.name, w - 26 - Font.measure('····' + b.acct), 1, true), x + 10, y + 10, { color: ink, shadow: null, bold: true });
     Font.draw(ctx, '····' + b.acct, x + w - 10, y + 10, { align: 'right', color: '#7a6a5a', shadow: null });
     Font.draw(ctx, `Rechnung #${b.index + 1}`, x + 10, y + 21, { color: '#8a7a6a', shadow: null });
+    if (b.funny) Font.draw(ctx, 'SONDERRECHNUNG', x + w - 10, y + 21, { align: 'right', color: '#c0392b', shadow: null, bold: true });
     ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 33, w - 16, 1);
-    Font.drawWrapped(ctx, 'Hinweis: Rechnungen müssen bezahlt werden, sonst ist der {#c0392b}Bankrott{/} dein Schicksal...', x + 10, y + 40, w - 20, { color: '#6a5a4a', shadow: null });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 76, w - 16, 1);
-    Font.draw(ctx, 'Fälliger Betrag', x + w / 2, y + 84, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
-    Font.draw(ctx, money(b.amount), x + w / 2, y + 98, { align: 'center', color: ink, shadow: null, scale: 3, bold: true });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 132, w - 16, 1);
-    Font.draw(ctx, 'Fällig in', x + w / 2, y + 140, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
+    Font.draw(ctx, 'Fälliger Betrag', x + w / 2, y + 46, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
+    Font.draw(ctx, money(b.amount), x + w / 2, y + 60, { align: 'center', color: ink, shadow: null, scale: 3, bold: true });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 96, w - 16, 1);
+    Font.draw(ctx, 'Fällig in', x + w / 2, y + 106, { align: 'center', color: '#a83a2a', shadow: null, bold: true });
     const dd = P.C.dueDays;
-    Font.draw(ctx, dd <= 0 ? 'HEUTE' : dd === 1 ? '1 Tag' : dd + ' Tagen', x + w / 2, y + 154, { align: 'center', color: dd <= 1 ? '#c0392b' : ink, shadow: null, scale: 2, bold: true });
+    Font.draw(ctx, dd <= 0 ? 'HEUTE' : dd === 1 ? '1 Tag' : dd + ' Tagen', x + w / 2, y + 120, { align: 'center', color: dd <= 1 ? '#c0392b' : ink, shadow: null, scale: 2, bold: true });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 146, w - 16, 1);
     // progress
     const frac = clamp(P.C.money / b.amount, 0, 1);
-    Font.draw(ctx, 'Gespart', x + 12, y + 182, { color: '#6a5a4a', shadow: null });
-    Font.draw(ctx, money(P.C.money) + ' / ' + money(b.amount), x + w - 12, y + 182, { align: 'right', color: frac >= 1 ? '#2a8a30' : '#6a5a4a', shadow: null });
-    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 12, y + 194, w - 24, 6);
-    ctx.fillStyle = frac >= 1 ? '#3aa040' : '#d0902e'; ctx.fillRect(x + 12, y + 194, Math.round((w - 24) * frac), 6);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 12, y + 194, Math.round((w - 24) * frac), 1);
-    Font.draw(ctx, '* BITTE UMGEHEND ÜBERWEISEN', x + w / 2, y + 222, { align: 'center', color: '#8a7a6a', shadow: null });
+    Font.draw(ctx, 'Gespart', x + 12, y + 158, { color: '#6a5a4a', shadow: null });
+    Font.draw(ctx, money(P.C.money) + ' / ' + money(b.amount), x + w - 12, y + 158, { align: 'right', color: frac >= 1 ? '#2a8a30' : '#6a5a4a', shadow: null });
+    ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 12, y + 170, w - 24, 8);
+    ctx.fillStyle = frac >= 1 ? '#3aa040' : '#d0902e'; ctx.fillRect(x + 12, y + 170, Math.round((w - 24) * frac), 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 12, y + 170, Math.round((w - 24) * frac), 1);
+    const miss = b.amount - P.C.money;
+    Font.draw(ctx, miss > 0 ? 'Es fehlen noch ' + money(miss) : 'Genug Geld zum Bezahlen!', x + w / 2, y + 188, { align: 'center', color: miss > 0 ? '#a83a2a' : '#2a8a30', shadow: null, bold: true });
+    if (b.item) {
+      // special bills list what was actually billed
+      ctx.fillStyle = '#c8b090'; ctx.fillRect(x + 8, y + 200, w - 16, 1);
+      Font.drawWrapped(ctx, 'Posten: ' + b.item, x + 10, y + 206, w - 20, { color: '#6a5a4a', shadow: null });
+    } else Font.draw(ctx, '* BITTE UMGEHEND ÜBERWEISEN', x + w / 2, y + 222, { align: 'center', color: '#a8988a', shadow: null });
     // stamps
     if (this.paper.state === 'paid') this.stamp(ctx, x + w / 2, y + 120, 'BEZAHLT', '#2a9a3a', this.paper.t);
     else if (P.C.dueDays <= 0 && P.C.money < b.amount) this.stamp(ctx, x + w / 2, y + 120, 'ÜBERFÄLLIG', '#c0392b', this.t);
@@ -733,7 +746,7 @@ class BankruptScene {
         Font.draw(ctx, a, W / 2 - 30, 160 + i * 18, { color: '#c8b8a0', alpha: a2 });
         Font.draw(ctx, String(b), W / 2 + 200, 160 + i * 18, { align: 'right', color: i === 5 ? '#c8a0ff' : '#ffffff', alpha: a2, bold: i === 5 });
       });
-      Font.drawWrapped(ctx, 'Geld, Skills und Perks sind weg. Deine Hämmer, Edelsteine, Sammlung und Ringe bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 290, 260, { color: '#8a7a6a' });
+      Font.drawWrapped(ctx, 'Geld, Skills, Perks und Hämmer sind weg. Edelsteine, Verzauberungen, Sammlung und Ringe bleiben. Jeder Zyklus gibt +10% Münzwert.', W / 2 - 40, 290, 260, { color: '#8a7a6a' });
     }
     if (t > 2 && UI.button(ctx, 'bk_go', W - 150, H - 36, 140, 26, 'Zum Schmuckkasten', { style: 'gold', key: ' ', keyLabel: 'LEER' })) Game.goto(new PrestigeScene());
   }
@@ -749,13 +762,13 @@ class PrestigeScene {
   draw(ctx, dt) {
     backdrop(ctx, 0.8);
     this.amb.draw(ctx, dt);
-    const bx = W / 2 - 150, by = 34, bw = 300, bh = 296;
+    const bx = W / 2 - 150, by = 34, bw = 300, bh = 300;
     // box lid & body
     ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx + 6, by + 8, bw, bh);
     UI.panel(ctx, bx, by, bw, bh, { fill: '#5a3420', border: '#2a160c', edge: '#120806' });
     for (let y = by + 4; y < by + bh - 4; y += 3) { ctx.fillStyle = (y * 7) % 5 === 0 ? 'rgba(0,0,0,0.12)' : 'rgba(255,200,150,0.03)'; ctx.fillRect(bx + 3, y, bw - 6, 1); }
     // velvet inside
-    const vx = bx + 12, vy = by + 34, vw = bw - 24, vh = 182;
+    const vx = bx + 12, vy = by + 34, vw = bw - 24, vh = 180;
     ctx.fillStyle = '#4a0e18'; ctx.fillRect(vx, vy, vw, vh);
     for (let i = 0; i < 400; i++) { ctx.fillStyle = i % 2 ? 'rgba(255,120,140,0.05)' : 'rgba(0,0,0,0.1)'; ctx.fillRect(vx + hash2(i, 1) * vw, vy + hash2(i, 2) * vh, 1, 1); }
     ctx.fillStyle = '#2a060c'; ctx.fillRect(vx, vy, vw, 2);
@@ -763,16 +776,16 @@ class PrestigeScene {
     // rings grid
     const cols = 5;
     RINGS.forEach((r, i) => {
-      const x = vx + 8 + (i % cols) * 56, y = vy + 6 + Math.floor(i / cols) * 44;
+      const x = vx + 6 + (i % cols) * 53, y = vy + 4 + Math.floor(i / cols) * 44;
       this.drawJewel(ctx, r, x, y, 48, 38, 'ring');
     });
     // bracelet drawer
-    const dy = vy + vh + 8;
-    ctx.fillStyle = '#3a0a12'; ctx.fillRect(vx, dy, vw, 64);
-    BRACELETS.forEach((r, i) => this.drawJewel(ctx, r, vx + 4 + i * 54, dy + 6, 50, 52, 'bracelet'));
+    const dy = vy + vh + 6;
+    ctx.fillStyle = '#3a0a12'; ctx.fillRect(vx, dy, vw, 56);
+    BRACELETS.forEach((r, i) => this.drawJewel(ctx, r, vx + 4 + i * 54, dy + 3, 50, 50, 'bracelet'));
     // equipped summary
     const eq = P.ringsEq.length, eb = P.braceEq.length;
-    Font.draw(ctx, `Ringe ${eq}/${RING_SLOTS}  ·  Armbänder ${eb}/${BRACELET_SLOTS}`, W / 2, by + bh - 12, { align: 'center', color: '#e8c8a0' });
+    Font.draw(ctx, `Angelegt: Ringe ${eq}/${RING_SLOTS}  ·  Armbänder ${eb}/${BRACELET_SLOTS}`, W / 2, dy + 62, { align: 'center', color: '#e8c8a0' });
     // PP
     UI.panel(ctx, W - 110, 6, 102, 22, { fill: '#2a1a2a', border: '#8a6ab0' });
     Font.draw(ctx, P.pp + ' VP', W - 16, 12, { align: 'right', color: '#e0c8ff', bold: true });
@@ -783,6 +796,10 @@ class PrestigeScene {
     Font.drawWrapped(ctx, 'Vermächtnispunkte (VP) gibt es für neue Rekorde: Bezahlst du eine Rechnung tiefer als je zuvor, erhältst du ihre Nummer in VP (Rechnung #5 = 5 VP).', W - 168, 60, 156, { color: '#d8c8b0' });
     // selected info panel
     const s = this.sel;
+    if (!s) {
+      UI.panel(ctx, 8, 40, 168, 70, { fill: 'rgba(20,12,10,0.9)', border: '#5a4030' });
+      Font.drawWrapped(ctx, 'Fahre über einen Ring oder ein Armband. Klicken kauft bzw. legt an/ab.', 16, 48, 152, { color: '#a8927a' });
+    }
     if (s) {
       UI.panel(ctx, 8, 40, 168, 110, { fill: 'rgba(20,12,10,0.95)', border: '#c8913a' });
       ctx.drawImage(s.kind === 'ring' ? Art.ring(s.r) : Art.bracelet(s.r), 16, 50);
@@ -825,10 +842,12 @@ class PrestigeScene {
       if (eq) Font.draw(ctx, 'Angelegt', x + w / 2, y + h - 10, { align: 'center', color: '#ffe0a0' });
       if (eq && chance(0.03)) this.parts.push(new Sparkle(x + rand(w), y + rand(h - 10)));
     } else {
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(Art.tint('jw' + r.id, spr, 'dark'), sp(x + w / 2 - spr.width / 2), sp(y + h / 2 - spr.height / 2 - 4 + bob));
+      // not bought yet: grey preview, brighter when affordable
+      const afford = P.pp >= r.cost;
+      ctx.globalAlpha = afford || reg.hover ? 0.85 : 0.45;
+      ctx.drawImage(Art.tint('jwg' + r.id, spr, 'gray'), sp(x + w / 2 - spr.width / 2), sp(y + h / 2 - spr.height / 2 - 4 + bob));
       ctx.globalAlpha = 1;
-      Font.draw(ctx, r.cost + ' VP', x + w / 2, y + h - 10, { align: 'center', color: P.pp >= r.cost ? '#e8c8ff' : '#7a5a6a' });
+      Font.draw(ctx, r.cost + ' VP', x + w / 2, y + h - 10, { align: 'center', color: afford ? '#e8c8ff' : '#7a5a6a' });
     }
     if (reg.click) {
       const list = kind === 'ring' ? P.rings : P.bracelets;
@@ -852,6 +871,10 @@ class PrestigeScene {
   }
   startCycle() {
     P.cycle++;
+    // bankruptcy also takes the hammers: back to the plain wooden one
+    P.hammers = ['wood'];
+    P.hammerLvl = { wood: 0 };
+    P.hammer = 'wood';
     P.C = newCycleState(P);
     invalidateStats();
     saveGame();

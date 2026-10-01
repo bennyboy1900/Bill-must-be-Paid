@@ -647,11 +647,13 @@ class Loot {
     }
     return true;
   }
+  // valuable gems (5+) are shown twice as big instead of in another colour
+  get scale() { return this.kind === 'gem' && this.value >= 5 ? 2 : 1; }
   sprite() {
     const f = Math.floor(this.spin) % 6;
     if (this.kind === 'coin') return Art.coin(this.o.metal, f);
     if (this.kind === 'cash') return Art.cash();
-    if (this.kind === 'gem') return Art.gem(this.o.gem, Math.floor(this.spin / 2));
+    if (this.kind === 'gem') return Art.gem('ruby', Math.floor(this.spin / 2)); // one gem colour everywhere
     if (this.kind === 'rare') return Art.rareCoin(RARE_BY_ID[this.o.id], 12);
     return Art.coin('gold', f);
   }
@@ -665,11 +667,12 @@ class Loot {
     if (this.kind === 'rare' || this.kind === 'gem') {
       // glow
       ctx.globalAlpha = 0.35 + Math.sin(this.t * 10) * 0.15;
-      ctx.fillStyle = this.kind === 'rare' ? RARITY[RARE_BY_ID[this.o.id].r].color : Art.GEMS[this.o.gem].l;
-      ctx.beginPath(); ctx.arc(sp(this.x), sp(this.y - this.z - s.height / 2), s.width * 0.9, 0, TAU); ctx.fill();
+      ctx.fillStyle = this.kind === 'rare' ? RARITY[RARE_BY_ID[this.o.id].r].color : Art.GEMS.ruby.l;
+      ctx.beginPath(); ctx.arc(sp(this.x), sp(this.y - this.z - (s.height * this.scale) / 2), s.width * this.scale * 0.9, 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    ctx.drawImage(s, sp(this.x - s.width / 2), sp(this.y - this.z - s.height));
+    const k = this.scale;
+    ctx.drawImage(s, sp(this.x - (s.width * k) / 2), sp(this.y - this.z - s.height * k), s.width * k, s.height * k);
   }
 }
 
@@ -1382,7 +1385,7 @@ class RunScene {
       } else if (roll < 0.7) {
         const k = randi(3, 8);
         for (let i = 0; i < k; i++) this.loot.push(new Loot(this, it.x, it.y - 6, 6, 'gem', 2, { gem: pick(['emerald', 'sapphire', 'ruby']) }));
-        this.text(it.x, it.y - 24, 'Edelsteine!', '#8ae8ff', { big: true });
+        this.text(it.x, it.y - 24, 'Edelsteine!', '#ff9aa0', { big: true });
         Sound.play('gem');
       } else if (roll < 0.85) {
         const r = weightedPick(RARE_COINS, (c) => RARE_WEIGHTS[c.r]);
@@ -1508,7 +1511,7 @@ class RunScene {
         { label: 'Kritische Treffer', val: r.crits },
         { label: 'Beste Combo', val: r.maxCombo },
         { label: 'Jackpots', val: r.jackpots, hide: !r.jackpots, col: '#ffb020' },
-        { label: 'Edelsteine', val: r.gems, gem: true, col: '#8ae8ff' },
+        { label: 'Edelsteine', val: r.gems, gem: true, col: '#ff9aa0' },
       ].filter((x) => !x.hide),
       t: 0,
       total: r.earned + bonus + interest,
@@ -1532,6 +1535,10 @@ class RunScene {
     ctx.save();
     ctx.translate(this.camX, this.camY);
     ctx.drawImage(Art.arena(), 0, 0);
+    // calm the desk clutter next to the box so the side HUD stays readable
+    ctx.fillStyle = 'rgba(12,6,4,0.55)';
+    ctx.fillRect(-10, 0, ARENA.x0 + 8, H + 10);
+    ctx.fillRect(ARENA.x1 - 2, 0, W - ARENA.x1 + 12, H + 10);
     // disco lights
     if (this.discoT > 0) {
       for (let i = 0; i < 5; i++) {
@@ -1686,7 +1693,8 @@ class RunScene {
     Font.draw(ctx, '·  ' + (last ? 'letzter Tag!' : 'noch ' + P.C.dueDays + ' Tage'), cx + 4, 4, { color: last && P.C.money < b.amount ? (Math.floor(t * 3) % 2 ? '#ff7a5a' : '#ffb09a') : '#a8927a', shadow: null });
     const pw = 210, pxb = cx - pw / 2, f = clamp(P.C.money / b.amount, 0, 1);
     UI.bar(ctx, pxb, 15, pw, 10, f, f >= 1 ? '#4ab84a' : '#b8782a');
-    Font.draw(ctx, `${b.name}: ${money(P.C.money)} / ${money(b.amount)}`, cx, 16, { align: 'center', color: '#ffffff', shadow: 'outline' });
+    const amt = `: ${money(P.C.money)} / ${money(b.amount)}`;
+    Font.draw(ctx, Font.fit(b.name, pw - 10 - Font.measure(amt)) + amt, cx, 16, { align: 'center', color: '#ffffff', shadow: 'outline' });
     // ---- pause + money (right) ----
     if (UI.iconButton(ctx, 'pause', W - 148, 6, 20, PAUSE_ICON(), { tip: 'Pause [Esc]' })) this.paused = true;
     const bump = this.moneyBump;
@@ -1731,7 +1739,7 @@ class RunScene {
       UI.panel(ctx, rx, ry, rw, 40, { fill: '#1a0e0c', border: '#c0392b', shadow: false });
       Font.draw(ctx, 'BOSS', rx + 6, ry + 4, { color: '#ff9a7a', bold: true, shadow: null });
       Font.draw(ctx, Math.ceil(left) + 's', rx + rw - 6, ry + 4, { align: 'right', color: left < 5 && Math.floor(t * 6) % 2 ? '#ff4a3a' : '#ffffff', shadow: null });
-      Font.draw(ctx, 'Vollzieher', rx + 6, ry + 15, { color: '#c8a090', shadow: null });
+      Font.draw(ctx, Font.fit('Trägt ' + money(bo.fixedValue || 0), rw - 12), rx + 6, ry + 15, { color: '#ffe9a8', shadow: null });
       UI.bar(ctx, rx + 6, ry + 30, rw - 12, 4, bo.hp / bo.maxHp, '#e8503e');
     }
 

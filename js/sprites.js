@@ -335,13 +335,13 @@ const Art = (() => {
     gem: [
       '............',
       '...xxxxxx...',
-      '..xwcccccx..',
-      '.xwccwcccCx.',
+      '..xwrrrrrx..',
+      '.xwrrwrrrRx.',
       'xxxxxxxxxxxx',
-      '.xcccccccCx.',
-      '..xccccCCx..',
-      '...xcccCx...',
-      '....xcCx....',
+      '.xrrrrrrrRx.',
+      '..xrrrrRRx..',
+      '...xrrrRx...',
+      '....xrRx....',
       '.....xx.....',
       '............',
       '............'],
@@ -824,7 +824,7 @@ const Art = (() => {
     vampire: { base: '#a8a0c8', acc: ['vcape'], eyes: 'red' },
     clown: { base: '#fff4ec', pattern: 'clown', acc: ['clownhair', 'rednose'] },
     clownjr: { base: '#fff4ec', pattern: 'clown', acc: ['clownhair', 'rednose'], size: 0.66 },
-    bailiff: { base: '#7a7a88', pattern: 'suit', acc: ['bowler', 'briefcase', 'glasses'], size: 1.5 },
+    bailiff: { base: '#eea4b4', pattern: 'suit', acc: ['bowler', 'briefcase', 'glasses'], size: 1.5, legs: '#30344a', shoes: '#141418' },
   };
 
   function pigColors(base) {
@@ -869,8 +869,10 @@ const Art = (() => {
       if (st.ghost) return;
       const x = x0 + swing(which);
       const bot = Math.round(legBot - lift(which));
+      if (st.legs) col = which === 'fb' || which === 'ff' ? shade(st.legs, 0.75) : st.legs; // trousers
+      const hoof = st.shoes || C.hoof;
       for (let y = Math.round(legTop); y <= bot; y++)
-        for (let i = 0; i < legW; i++) g.set(x + i, y, y >= bot - Math.max(0, Math.round(s) - 1) ? C.hoof : col);
+        for (let i = 0; i < legW; i++) g.set(x + i, y, y >= bot - Math.max(0, Math.round(s) - 1) ? hoof : col);
     };
     leg(Math.round(cx - 4 * s), 'fb', C.dd);
     leg(Math.round(cx + 6.5 * s), 'ff', C.dd);
@@ -956,7 +958,7 @@ const Art = (() => {
     if (id === 'porcelain' || id === 'diamond' || id === 'king') for (let i = -4; i <= 3; i++) g.set(cx + i * s - 1 * s, slotY - 1, '#f5c542');
 
     // ---- accessories ----
-    for (const a of st.acc || []) if (ACCS[a]) ACCS[a](g, { cx, cy, rx, ry, s, C, frame, ex, ey, legBot, legW });
+    for (const a of st.acc || []) if (ACCS[a]) ACCS[a](g, { cx, cy, rx, ry, s, C, frame, ex, ey, legBot, legW, swing, lift, frontLeg: () => leg(Math.round(cx + 3.5 * s), 'nf', C.d) });
 
     // ---- outline ----
     g.outline(C.ol);
@@ -977,13 +979,21 @@ const Art = (() => {
 
   const PATTERNS = {
     suit(u, v, nx, ny, t, C, s) {
-      const fx = 7 * s;
-      if (v > -4 * s && Math.abs(u - fx) < (v + 4 * s) * 0.45) {
-        if (Math.abs(u - fx) < 0.8 * s && v > -2 * s) return v > 4 * s ? '#a01a2a' : '#d0303a';
-        return t === 'dd' ? '#c8c8d0' : '#f4f4f8';
+      // dark jacket over the back two thirds, pink face stays visible in front
+      const edge = 2.5 * s + v * 0.35;
+      if (u > edge + 3.2 * s) return null;
+      if (u > edge && v > -3 * s) {
+        // shirt collar + red tie peeking out of the jacket front
+        const tx = edge + 1.6 * s;
+        if (Math.abs(u - tx) < 0.9 * s && v > -1.5 * s) return v > 4.5 * s ? '#a01a2a' : '#d0303a';
+        return t === 'dd' || t === 'd' ? '#c8c8d4' : '#f4f4f8';
       }
-      if (Math.round(u) % 5 === 0 && t !== 'hl') return C.d;
-      return null;
+      if (u > edge) return null;
+      const J = { hl: '#5e6684', li: '#4a516c', b: '#3a4058', d: '#2e3348', dd: '#23273a' };
+      // lapel seam + buttons
+      if (Math.abs(u - (edge - 0.6 * s)) < 0.5 && v > -3 * s) return J.dd;
+      if (Math.abs(u - (edge - 1.8 * s)) < 0.6 && (Math.abs(v - 2 * s) < 0.6 || Math.abs(v - 5 * s) < 0.6)) return '#c8b070';
+      return J[t];
     },
     stripes(u, v, nx, ny, t, C, s) {
       if (((Math.round(v / s) % 4) + 4) % 4 === 0) return t === 'dd' || t === 'd' ? '#2a2a50' : '#3a3a70';
@@ -1129,12 +1139,25 @@ const Art = (() => {
       g.ell(cx + 4.5 * s, by - 2 * s, 4.2 * s, 3.6 * s, (x, y, nx, ny) => (ny > 0.4 ? null : -nx - ny > 0.7 ? '#4a4a58' : '#1e1e26'));
     },
     briefcase(g, o) {
-      const { cx, s, legBot } = o;
-      const x0 = Math.round(cx + 6 * s), y0 = Math.round(legBot - 6 * s);
-      g.rect(x0, y0, Math.round(8 * s), Math.round(5 * s), '#6a3a1e');
-      g.rect(x0, y0, Math.round(8 * s), 1, '#8a5a30');
-      g.rect(x0 + Math.round(3 * s), y0 - 2, Math.round(2 * s), 2, '#3a2010');
-      g.set(x0 + Math.round(4 * s), y0 + Math.round(2 * s), '#e0b040');
+      // leather case carried by the near front leg (the leg is drawn on top later)
+      const { cx, s, legBot, legW, swing, lift } = o;
+      const lx = Math.round(cx + 3.5 * s) + swing('nf') + Math.floor(legW / 2);
+      const w = Math.round(11 * s), h = Math.round(7 * s);
+      const x0 = lx - Math.floor(w / 2), y0 = Math.round(legBot - lift('nf') - h + 1 * s);
+      const ol = '#2a160a';
+      // handle loop above the case
+      const hw = Math.round(4 * s), hx = lx - Math.floor(hw / 2);
+      g.rect(hx, y0 - 3, hw, 1, ol); g.rect(hx, y0 - 2, 1, 2, ol); g.rect(hx + hw - 1, y0 - 2, 1, 2, ol);
+      // body with rounded corners + outline
+      g.rect(x0 + 1, y0, w - 2, h, ol); g.rect(x0, y0 + 1, w, h - 2, ol);
+      g.rect(x0 + 1, y0 + 1, w - 2, h - 2, '#7a4522');
+      g.rect(x0 + 1, y0 + 1, w - 2, 1, '#a8642e');
+      g.rect(x0 + 1, y0 + h - 2, w - 2, 1, '#55301a');
+      // lid seam + brass clasps
+      g.rect(x0 + 1, y0 + Math.round(2 * s), w - 2, 1, '#55301a');
+      g.rect(x0 + 2, y0 + Math.round(2 * s) - 1, 2, 2, '#f0c040');
+      g.rect(x0 + w - 4, y0 + Math.round(2 * s) - 1, 2, 2, '#f0c040');
+      o.frontLeg();
     },
     bandana(g, o) {
       const { cx, cy, ry, s, rx } = o;
@@ -1736,15 +1759,16 @@ const Art = (() => {
     g.set(cx - 14, cy + 2, sk.dd); g.set(cx + 14, cy + 2, '#7a4434');
     // head
     g.ell(cx, cy, 13.5, 15.5, (x, y, nx, ny) => {
-      const l = -0.55 * nx - 0.6 * ny;
-      if (ny > 0.55 && Math.abs(nx) < 0.85) {
-        // stubble zone
-        const st = hash2(x, y, 12) > 0.55;
-        return st ? (nx > 0.3 ? '#a8705a' : '#c08a70') : nx > 0.4 ? sk.d : sk.b;
+      // light from the left: calm, nearly vertical bands instead of a diagonal stripe across the face
+      const l = -0.8 * nx - 0.25 * ny;
+      if (ny > 0.68 && Math.abs(nx) < 0.8) {
+        // light stubble along the jaw
+        const st = hash2(x, y, 12) > 0.72;
+        return st ? (nx > 0.3 ? '#b07a62' : '#c8957a') : nx > 0.4 ? sk.d : sk.b;
       }
-      if (l > 0.55) return sk.hl;
-      if (l > 0.1) return sk.l;
-      if (l < -0.45) return sk.d;
+      if (l > 0.62 && ny < 0.3) return sk.hl;
+      if (l > 0.3) return sk.l;
+      if (l < -0.5) return sk.d;
       return sk.b;
     });
     // hair (messy)
@@ -1763,8 +1787,11 @@ const Art = (() => {
     [[-8, -19], [-4, -21], [0, -20], [3, -22], [7, -19], [10, -17], [-11, -16]].forEach(([dx, dy], i) => {
       g.tri(cx + dx - 2, cy - 15, cx + dx + 3, cy - 15, cx + dx, cy + dy, i % 2 ? hair.b : hair.l);
     });
-    // fringe strands
-    [[-6, -8], [-5, -7], [2, -8], [3, -7], [4, -6]].forEach(([dx, dy]) => g.set(cx + dx, cy + dy, hair.d));
+    // fringe: two locks hanging from the hairline (attached, no loose strands on the forehead)
+    g.tri(cx - 10, cy - 13, cx - 3, cy - 13, cx - 8, cy - 8, hair.b);
+    g.tri(cx - 9, cy - 12, cx - 6, cy - 12, cx - 8, cy - 9, hair.l);
+    g.tri(cx + 1, cy - 13, cx + 7, cy - 13, cx + 2, cy - 9, hair.b);
+    g.set(cx - 8, cy - 8, hair.d); g.set(cx + 2, cy - 9, hair.d);
     // eyebrows
     const browY = cy - 4;
     const brows = {
@@ -1779,8 +1806,10 @@ const Art = (() => {
       smug: [[0, 0, 0, 0, 0], [-1, -2, -2, -1, 0]],
     }[expr] || [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
     for (let i = 0; i < 5; i++) {
-      g.set(cx - 9 + i, browY + brows[0][i], hair.d); g.set(cx - 9 + i, browY + brows[0][i] - 1, hair.b);
-      g.set(cx + 4 + i, browY + brows[1][i], hair.d); g.set(cx + 4 + i, browY + brows[1][i] - 1, hair.b);
+      for (const [bx, row] of [[cx - 10, brows[0]], [cx + 4, brows[1]]]) {
+        g.set(bx + i, browY + row[i], hair.d);
+        if (i > 0 && i < 4) g.set(bx + i, browY + row[i] - 1, hair.d);
+      }
     }
     // eyes
     const eyeY = cy - 1;
@@ -1804,8 +1833,7 @@ const Art = (() => {
     };
     drawEye(cx - 9); drawEye(cx + 4);
     // eye bags
-    for (let i = 0; i < 4; i++) { g.set(cx - 9 + i, eyeY + 3, '#c88a7a'); g.set(cx + 4 + i, eyeY + 3, '#c88a7a'); }
-    if (expr === 'tired' || expr === 'sad') { g.set(cx - 8, eyeY + 4, '#b07a6a'); g.set(cx + 5, eyeY + 4, '#b07a6a'); }
+    if (expr === 'tired' || expr === 'sad') for (let i = 1; i < 4; i++) { g.set(cx - 9 + i, eyeY + 3, sk.d); g.set(cx + 4 + i, eyeY + 3, sk.d); }
     // nose (big)
     for (let y = cy; y < cy + 7; y++) { g.set(cx - 1, y, sk.l); g.set(cx, y, sk.b); g.set(cx + 1, y, sk.d); }
     g.set(cx - 2, cy + 6, sk.d); g.set(cx + 2, cy + 6, sk.dd); g.set(cx - 1, cy + 7, sk.dd); g.set(cx, cy + 7, sk.dd); g.set(cx + 1, cy + 7, sk.dd);

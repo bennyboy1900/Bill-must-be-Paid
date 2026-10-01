@@ -74,7 +74,7 @@ const ENCHANTS = [
   { id: 'echo', name: 'Echo', icon: 'wave', color: '#8ac0ff', max: 5, d: (l) => `${l * 10}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.1 * l) },
   { id: 'goldtouch', name: 'Goldener Schlag', icon: 'coin', color: '#ffd040', max: 5, d: (l) => `Jeder Treffer schlägt Münzen heraus (${l * 4}% Wert)`, a: (s, l) => (s.goldTouch += 0.04 * l) },
   { id: 'shock', name: 'Schockwelle', icon: 'radius', color: '#e8e0ff', max: 5, d: (l) => `Krits lösen eine Schockwelle aus (${l * 40}% Schaden)`, a: (s, l) => (s.shockwave += 0.4 * l) },
-  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#5ae0f0', max: 5, d: (l) => `+${l * 20}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
+  { id: 'jeweler', name: 'Juwelier', icon: 'gem', color: '#ff9aa0', max: 5, d: (l) => `+${l * 20}% Edelsteinchance`, a: (s, l) => (s.gemPct += 0.2 * l) },
 ];
 const enchantCost = (lvl) => Math.round(18 * Math.pow(2, lvl));
 // completing every coin of a rarity grants a set bonus
@@ -300,6 +300,45 @@ const BILLS = [
   { name: 'Paralleluniversum-Gebühr', q: 'Mein anderes Ich hat auch Schulden.' },
   { name: 'Rechnung des Universums', q: 'Ist das... die letzte?' },
 ];
+// funny special bills: they randomly replace a regular bill (same amount and deadline),
+// purely for variety. Names are feminine so "die {bill}" always works.
+const FUNNY_BILLS = [
+  { name: 'Claude-Rechnung', q: 'Ich hab Claude gefragt, wie ich Geld spare. Das hier ist die Antwort.', item: "4.812x 'Mach das kürzer', 4.811x 'Jetzt wieder länger'" },
+  { name: 'Token-Nachzahlung', q: 'Wer hätte gedacht, dass "Danke!" auch was kostet?', item: "Höflichkeitszuschlag: 9.000x 'Danke', 4.000x 'Bitte'" },
+  { name: 'Guten-Morgen-Gebühr', q: 'Oma schickt jeden Morgen 14 Blumen-GIFs. In 4K.', item: 'Datenvolumen: 38 GB Rosen mit Glitzer' },
+  { name: 'Unterhaltszahlung', q: 'Ich zahle Unterhalt für ein Sparschwein. Es war... kompliziert.', item: 'Für: 1 Ferkel (rosa), Taschengeld inkl. Münzschlitz' },
+  { name: 'Ex-Streaming-Gebühr', q: 'Meine Ex nutzt noch mein Netflix. Und ihr Neuer. Und seine Mutter.', item: "Profile: 'Bill', 'NICHT Bill', 'Bill weint'" },
+  { name: 'Gartenzwerg-Kaution', q: 'Kevin, der Gartenzwerg, ist wieder in U-Haft.', item: 'Kaution für 1 Zwerg. Zustand: uneinsichtig' },
+  { name: 'Taubenfutter-Strafe', q: 'Es war nur EIN Croissant. Für 300 Tauben.', item: 'Grobe Fütterung, Taubenaufstand (Mitschuld)' },
+  { name: 'Ruhestörungs-Mahnung', q: 'Ich habe laut geniest. Um 22:01 Uhr.', item: 'Niesen (1x), Lachen (Verdacht), Atmen (laut)' },
+  { name: 'Gewissens-Abgabe', q: 'Ich habe Mama seit Dienstag nicht angerufen.', item: "Seufzer: 47, 'Ich sag ja nix': 12" },
+  { name: 'Achtsamkeits-Gebühr', q: 'Die Meditations-App hat mir Stress berechnet. Ironisch.', item: 'Atemübung Premium: Ein- UND Ausatmen' },
+  { name: 'Drachen-Versicherung', q: 'Man weiß ja nie.', item: 'Deckung: Feuer, Goldraub, Prinzessinnen' },
+  { name: 'Rechnungsrechnung', q: 'Eine Rechnung dafür, dass ich Rechnungen bekomme. Natürlich.', item: 'Bearbeitungsgebühr für diese Bearbeitungsgebühr' },
+  { name: 'Kühlschrank-Gebühr', q: 'Mein smarter Kühlschrank hat ein Abo abgeschlossen. Für Eiswürfel.', item: 'Eiswürfel Plus, Licht-geht-an-Pauschale' },
+  { name: 'Bücherei-Mahnung', q: 'Das Buch hieß "Pünktlich sein". Überfällig seit 1998.', item: '1x "Pünktlich sein", 9.862 Tage zu spät' },
+  { name: 'Like-Steuer', q: 'Mein Foto vom Toast hat 3 Likes. Das ist jetzt steuerpflichtig.', item: 'Toast (leicht verbrannt), 3 Likes, 1 Herz von Oma' },
+  { name: 'Katzen-Bestellung', q: 'Mr. Whiskers hat online bestellt. 40 Kartons. Er wollte nur die Kartons.', item: '40x Karton (leer), 1x Laserpointer (Express)' },
+  { name: 'Gefahrenzulage', q: 'Die Sparschweine haben eine Gewerkschaft gegründet.', item: 'Pro Hammerschlag 1 Cent, Trostkuscheln extra' },
+  { name: 'Trinkgeld-Pauschale', q: 'Der Gerichtsvollzieher will Trinkgeld. Für die Mühe.', item: 'Service: freundliches Pfänden, 5 Sterne' },
+  { name: 'RGB-Stuhl-Rate', q: 'Er hat RGB. Er macht mich nicht schneller. Aber er hat RGB.', item: 'RGB-Paket, Lordosenstütze (ungenutzt)' },
+  { name: 'Schnarch-Entschädigung', q: 'Mein Nachbar hat mich verklagt. Ich schnarche durch zwei Wände.', item: 'Lärm: 94 dB, Oktave: Walgesang' },
+];
+const FUNNY_CHANCE = 0.3;
+function _funnySeed() { return typeof P !== 'undefined' && P ? P.cycle : 1; }
+function isFunnyBill(i, seed) { return i > 0 && i < BILLS.length - 1 && hash2(i, seed, 77) < FUNNY_CHANCE; }
+function funnyBill(i) {
+  const seed = _funnySeed();
+  if (!isFunnyBill(i, seed)) return null;
+  // each cycle shuffles the pool, the n-th special bill of a cycle takes the n-th entry (no repeats)
+  let n = 0;
+  for (let j = 1; j < i; j++) if (isFunnyBill(j, seed)) n++;
+  const order = FUNNY_BILLS.map((_, k) => k).sort((a, b) => hash2(a, seed, 79) - hash2(b, seed, 79));
+  // the very first special bill of a new game is always Claude's
+  if (seed === 1) { order.splice(order.indexOf(0), 1); order.unshift(0); }
+  return FUNNY_BILLS[order[n % order.length]];
+}
+
 function niceRound(n) {
   if (n < 100) return Math.round(n / 5) * 5;
   const mag = Math.pow(10, Math.floor(Math.log10(n)) - 1);
@@ -310,10 +349,13 @@ function billInfo(i) {
   const loop = Math.floor(i / BILLS.length);
   const amount = niceRound(30 * Math.pow(1.62, Math.min(i, 10)) * Math.pow(1.85, clamp(i - 10, 0, 6)) * Math.pow(2.1, Math.max(0, i - 16)));
   const days = i < 2 ? 2 : i % 3 === 2 ? 3 : 2;
+  const fun = funnyBill(i);
   return {
     index: i,
-    name: base.name + (loop > 0 ? ' ' + ['II', 'III', 'IV', 'V', 'VI', 'VII'][Math.min(5, loop - 1)] : ''),
-    q: base.q,
+    name: fun ? fun.name : base.name + (loop > 0 ? ' ' + ['II', 'III', 'IV', 'V', 'VI', 'VII'][Math.min(5, loop - 1)] : ''),
+    q: fun ? fun.q : base.q,
+    item: fun ? fun.item : null,
+    funny: !!fun,
     amount,
     days,
     acct: String(1000 + ((i * 7919) % 9000)),
