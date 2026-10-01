@@ -24,6 +24,14 @@ const Game = {
     this.bindInput();
     this.scene = new TitleScene();
     this.scene.enter && this.scene.enter();
+    // favicon: a little pixel piggy
+    try {
+      const spr = Art.pig('pink', 0), fc = makeCanvas(32, 32), fx = fc.getContext('2d');
+      fx.drawImage(spr.canvas, Math.round(16 - spr.ax), Math.round(26 - spr.ay));
+      const link = document.createElement('link');
+      link.rel = 'icon'; link.href = fc.toDataURL();
+      document.head.appendChild(link);
+    } catch (e) { /* ignore */ }
     // warm up sprite caches so the first run doesn't hitch
     setTimeout(() => {
       for (const id of Object.keys(Art.PIG_STYLES)) for (let f = 0; f < Art.PIG_FRAMES; f++) Art.pig(id, f);

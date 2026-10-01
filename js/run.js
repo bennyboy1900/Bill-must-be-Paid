@@ -781,9 +781,9 @@ class RunScene {
     this.echoes = [];
   }
   later(t, fn) { this.sched.push({ t, fn }); }
-  // on-hit / on-smash stamina gain is limited to one full bar per run
+  // on-hit / on-smash / coffee stamina gain is limited to 1.5 bars per run
   recover(v) {
-    const room = this.maxStamina - this.recovered;
+    const room = this.maxStamina * 1.5 - this.recovered;
     if (room <= 0) return;
     const g = Math.min(v, room, this.maxStamina - this.stamina);
     if (g <= 0) return;
@@ -866,7 +866,7 @@ class RunScene {
       if (this.itemT <= 0) {
         this.itemT = 1;
         const x = rand(BOUNDS.x0 + 20, BOUNDS.x1 - 20), y = rand(BOUNDS.y0 + 20, BOUNDS.y1 - 10);
-        if (S.coffee && chance(0.05 * S.coffee)) this.items.push(new Item(this, 'coffee', x, y));
+        if (S.coffee && chance(Math.min(0.2, 0.04 * S.coffee))) this.items.push(new Item(this, 'coffee', x, y));
         else if (S.energy && chance(0.015)) this.items.push(new Item(this, 'energy', x, y));
         else if (chance(0.006 * Math.sqrt(S.luck))) this.items.push(new Item(this, 'lottery', x, y));
       }
@@ -1354,15 +1354,16 @@ class RunScene {
     const S = this.S;
     it.dead = true;
     if (it.kind === 'coffee') {
-      const amt = 12 * S.coffeeAmt;
-      this.stamina = Math.min(this.maxStamina, this.stamina + amt);
+      const before = this.stamina;
+      this.recover(12 * S.coffeeAmt);
+      const amt = this.stamina - before;
       this.coffeeT = 5; this.r.coffee++;
       this.coffeeDmg += S.coffeeAddict;
-      this.text(it.x, it.y - 20, '+' + Math.round(amt) + ' Ausdauer', '#ffd8a0', { big: true });
+      this.text(it.x, it.y - 20, amt > 0.5 ? '+' + Math.round(amt) + ' Ausdauer' : 'Koffein-Limit!', '#ffd8a0', { big: true });
       Sound.play('drink');
       for (let i = 0; i < 10; i++) this.parts.push(new Shard(it.x, it.y, 6, pick(['#ffffff', '#e8e2d8', '#5a3420'])));
     } else if (it.kind === 'energy') {
-      this.stamina = Math.min(this.maxStamina, this.stamina + 40);
+      this.recover(40);
       this.frenzyT = 6;
       this.text(it.x, it.y - 20, 'ENERGIE!', '#7aff8a', { big: true, scale: 2 });
       Sound.play('frenzy'); Sound.play('drink');
@@ -1766,7 +1767,7 @@ class RunScene {
     const t = R.t;
     ctx.fillStyle = `rgba(10,5,4,${Math.min(0.75, t * 2)})`;
     ctx.fillRect(0, 0, W, H);
-    const pw = 300, ph = 64 + R.rows.length * 18 + 50;
+    const pw = 300, ph = 64 + R.rows.length * 18 + 72;
     const k = Ease.outBack(Math.min(1, t / 0.4));
     const px = W / 2 - pw / 2, py = H / 2 - ph / 2 + (1 - k) * 60;
     UI.panel(ctx, px, py, pw, ph, { fill: '#231713', border: '#c8913a', glow: true });
@@ -1785,6 +1786,15 @@ class RunScene {
       ctx.fillStyle = '#3a2a20'; ctx.fillRect(px + 50, y + 12, pw - 66, 1);
       ctx.globalAlpha = 1;
     });
+    // progress towards the current bill
+    if (t > 0.5 + R.rows.length * 0.12) {
+      const b = currentBill();
+      const f = clamp(P.C.money / b.amount, 0, 1);
+      const yb = py + 38 + R.rows.length * 18 + 2;
+      Font.draw(ctx, `${b.name}: ${money(P.C.money)} / ${money(b.amount)}`, px + 50, yb, { color: f >= 1 ? '#9af08a' : '#c8b8a0' });
+      UI.bar(ctx, px + 50, yb + 12, pw - 66, 4, f, f >= 1 ? '#6fd65a' : '#e0a84a');
+      if (f >= 1) Font.draw(ctx, 'Bezahlbar!', px + pw - 16, yb, { align: 'right', color: '#9af08a', bold: true });
+    }
     if (this.r.rares.length) {
       let x = px + 50;
       for (const id of this.r.rares.slice(0, 10)) { ctx.drawImage(Art.rareCoin(RARE_BY_ID[id], 12), x, py + ph - 44); x += 16; }

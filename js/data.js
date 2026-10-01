@@ -70,7 +70,7 @@ const hammerStars = (lvl) => Math.min(5, Math.floor(lvl / 5));
 // enchantments are bought in the forge with gems and apply to every hammer
 const ENCHANTS = [
   { id: 'flame', name: 'Flammenschlag', icon: 'fire', color: '#ff7a2a', max: 5, d: (l) => `Treffer setzen Schweine in Brand: ${l * 25}% Schaden/s für 2s`, a: (s, l) => (s.burn += 0.25 * l) },
-  { id: 'vamp', name: 'Vampirschlag', icon: 'heart', color: '#e8304a', max: 5, d: (l) => `Jeder Treffer heilt ${(l * 0.15).toFixed(2)} Ausdauer (max. 1 Balken/Run)`, a: (s, l) => (s.vamp += 0.15 * l) },
+  { id: 'vamp', name: 'Vampirschlag', icon: 'heart', color: '#e8304a', max: 5, d: (l) => `Jeder Treffer heilt ${(l * 0.15).toFixed(2)} Ausdauer (max. 1,5 Balken/Run)`, a: (s, l) => (s.vamp += 0.15 * l) },
   { id: 'echo', name: 'Echo', icon: 'wave', color: '#8ac0ff', max: 5, d: (l) => `${l * 10}% Chance: ein Geisterhammer schlägt nochmal zu`, a: (s, l) => (s.echo += 0.1 * l) },
   { id: 'goldtouch', name: 'Goldener Schlag', icon: 'coin', color: '#ffd040', max: 5, d: (l) => `Jeder Treffer schlägt Münzen heraus (${l * 4}% Wert)`, a: (s, l) => (s.goldTouch += 0.04 * l) },
   { id: 'shock', name: 'Schockwelle', icon: 'radius', color: '#e8e0ff', max: 5, d: (l) => `Krits lösen eine Schockwelle aus (${l * 40}% Schaden)`, a: (s, l) => (s.shockwave += 0.4 * l) },
@@ -205,7 +205,7 @@ const SKILLS = [
   { id: 'A3', b: 'gym', x: -1, y: 3, req: ['A2'], name: 'Proteinshake', icon: 'drink', max: 10, cost: 260, grow: 1.6, d: (l) => `+${l * 10} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 10 * l) },
   { id: 'A4', b: 'gym', x: 1, y: 3, req: ['A2'], name: 'Bankdrücken', icon: 'dumbbell', max: 10, cost: 380, grow: 1.6, d: (l) => `+${l * 8}% max. Ausdauer`, a: (s, l) => (s.staminaPct += 0.08 * l) },
   { id: 'AK', b: 'gym', x: 0, y: 4, req: ['A3', 'A4'], name: 'Zweiter Atem', icon: 'heart', max: 3, cost: 1500, grow: 2.5, key: true, d: (l) => `Einmal pro Run: bei 0 Ausdauer +${l * 20}% zurück`, a: (s, l) => (s.secondWind = Math.max(s.secondWind, 0.2 * l)) },
-  { id: 'A5', b: 'gym', x: -1, y: 5, req: ['AK'], name: 'Erholungs-Schlag', icon: 'heart', max: 10, cost: 3200, grow: 1.6, d: (l) => `+${(l * 0.2).toFixed(1)} Ausdauer pro zerschlagenem Schwein (max. 1 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.2 * l) },
+  { id: 'A5', b: 'gym', x: -1, y: 5, req: ['AK'], name: 'Erholungs-Schlag', icon: 'heart', max: 10, cost: 3200, grow: 1.6, d: (l) => `+${(l * 0.2).toFixed(1)} Ausdauer pro zerschlagenem Schwein (max. 1,5 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.2 * l) },
   { id: 'A6', b: 'gym', x: 1, y: 5, req: ['AK'], name: 'Marathon', icon: 'dumbbell', max: 10, cost: 3800, grow: 1.6, d: (l) => `+${l * 15} max. Ausdauer`, a: (s, l) => (s.staminaFlat += 15 * l) },
   { id: 'AX', b: 'gym', x: 0, y: 6, req: ['A5', 'A6'], name: 'Eiserner Wille', icon: 'fist', max: 1, cost: 30000, grow: 1, key: true, d: () => `Ausdauer sinkt nur noch halb so schnell mit der Zeit`, a: (s) => (s.drain *= 0.5) },
 
@@ -227,7 +227,7 @@ const skillCost = (sk, lvl) => Math.round(sk.cost * Math.pow(sk.grow, lvl));
 // rarity: 1 common, 2 rare, 3 epic
 const PERKS = [
   { id: 'freeze', name: 'Tiefkühltruhe', icon: 'snow', r: 2, max: 3, d: (l) => `Treffer bauen Frost auf: alle Schweine frieren ${(2 + l * 0.5).toFixed(1)}s ein`, a: (s, l) => { s.freeze += 0.04 + 0.01 * l; s.freezeDur += 0.5 * l - 0.5; } },
-  { id: 'recovery', name: 'Erholungs-Schlag', icon: 'heart', r: 1, max: 5, d: (l) => `+${(l * 0.5).toFixed(1)} Ausdauer pro Schwein (max. 1 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.5 * l) },
+  { id: 'recovery', name: 'Erholungs-Schlag', icon: 'heart', r: 1, max: 5, d: (l) => `+${(l * 0.5).toFixed(1)} Ausdauer pro Schwein (max. 1,5 Balken/Run)`, a: (s, l) => (s.staminaPerSmash += 0.5 * l) },
   { id: 'interest', name: 'Zinssatz', icon: 'percent', r: 1, max: 4, d: (l) => `${l * 5}% deines Ersparten als Bonus pro Tag`, a: (s, l) => (s.interest += 0.05 * l) },
   { id: 'golden', name: 'Goldene Stunde', icon: 'coins', r: 1, max: 10, d: (l) => `+${l * 15}% Münzwert`, a: (s, l) => (s.coinPct += 0.15 * l) },
   { id: 'double', name: 'Doppelschlag', icon: 'hammer', r: 1, max: 5, d: (l) => `${l * 10}% Chance, doppelt zu treffen`, a: (s, l) => (s.double += 0.1 * l) },
