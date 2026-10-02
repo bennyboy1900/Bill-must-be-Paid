@@ -761,6 +761,7 @@ class RunScene {
     this.shakeAmt = 0; this.hitstop = 0; this.flash = 0; this.flashCol = '#ffffff'; this.timeScale = 1;
     this.secondWindUsed = false;
     this.recovered = 0;
+    this.coffeeGained = 0;
     this.moneyBefore = P.C.money;
     this.dispMoney = P.C.money; this.moneyBump = 0; this.gemBump = 0;
     this.coinStreak = 0; this.coinStreakT = 0;
@@ -796,7 +797,7 @@ class RunScene {
   later(t, fn) { this.sched.push({ t, fn }); }
   // party, disco, frenzy and gold rush last longer with "buffDur"
   dur(base) { return base * (1 + this.S.buffDur); }
-  // on-hit / on-smash / coffee stamina gain is limited to 1.5 bars per run
+  // on-hit / on-smash / coffee stamina gain is limited to 1.5 bars per run (coffee alone to 0.75 bars)
   recover(v) {
     const room = this.maxStamina * 1.5 - this.recovered;
     if (room <= 0) return;
@@ -884,7 +885,8 @@ class RunScene {
       if (this.itemT <= 0) {
         this.itemT = 1;
         const x = rand(BOUNDS.x0 + 20, BOUNDS.x1 - 20), y = rand(BOUNDS.y0 + 20, BOUNDS.y1 - 10);
-        if (S.coffee && chance(Math.min(0.2, 0.04 * S.coffee))) this.items.push(new Item(this, 'coffee', x, y));
+        // coffee spawns with diminishing returns: 3% / 5% / 7% ... capped near 12% per second
+        if (S.coffee && chance(0.12 * (1 - Math.pow(0.75, S.coffee)))) this.items.push(new Item(this, 'coffee', x, y));
         else if (S.energy && chance(0.015)) this.items.push(new Item(this, 'energy', x, y));
         else if (chance(Math.min(0.25, 0.006 * Math.sqrt(S.luck) * S.lotteryMult))) this.items.push(new Item(this, 'lottery', x, y));
       }
@@ -1375,8 +1377,10 @@ class RunScene {
     it.dead = true;
     if (it.kind === 'coffee') {
       const before = this.stamina;
-      this.recover(12 * S.coffeeAmt);
+      const room = this.maxStamina * 0.75 - this.coffeeGained;
+      if (room > 0) this.recover(Math.min(12 * S.coffeeAmt, room));
       const amt = this.stamina - before;
+      this.coffeeGained += amt;
       this.coffeeT = 5; this.r.coffee++;
       this.coffeeDmg += S.coffeeAddict;
       this.text(it.x, it.y - 20, amt > 0.5 ? '+' + Math.round(amt) + ' Ausdauer' : 'Koffein-Limit!', '#ffd8a0', { big: true });
