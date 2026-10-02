@@ -212,8 +212,8 @@ const SKILLS = [
 
   // ---- coffee (SW) ----
   { id: 'C1', b: 'coffee', x: -1, y: 1, req: ['OO'], name: 'Espresso', icon: 'coffee', max: 10, cost: 40, grow: 1.6, d: (l) => `+${(l * 0.04).toFixed(2)} Ausdauer/s Regeneration`, a: (s, l) => (s.regen += 0.04 * l) },
-  { id: 'C2', b: 'coffee', x: -2, y: 2, req: ['C1'], name: 'Kaffeetasse', icon: 'coffee', max: 5, cost: 180, grow: 1.9, d: (l) => `Kaffeetassen erscheinen (${l}x), +12 Ausdauer`, a: (s, l) => (s.coffee += l) },
-  { id: 'C3', b: 'coffee', x: -3, y: 2, req: ['C2'], name: 'Doppelter Espresso', icon: 'coffee', max: 5, cost: 650, grow: 1.7, d: (l) => `Kaffee gibt +${l * 50}% Ausdauer`, a: (s, l) => (s.coffeeAmt += 0.5 * l) },
+  { id: 'C2', b: 'coffee', x: -2, y: 2, req: ['C1'], name: 'Kaffeetasse', icon: 'coffee', max: 5, cost: 180, grow: 1.9, d: (l) => `Kaffeetassen erscheinen (${l}x), +12 Ausdauer (max. 0,75 Balken/Run)`, a: (s, l) => (s.coffee += l) },
+  { id: 'C3', b: 'coffee', x: -3, y: 2, req: ['C2'], name: 'Doppelter Espresso', icon: 'coffee', max: 5, cost: 650, grow: 1.7, d: (l) => `Kaffee gibt +${l * 25}% Ausdauer`, a: (s, l) => (s.coffeeAmt += 0.25 * l) },
   { id: 'C4', b: 'coffee', x: -2, y: 3, req: ['C2'], name: 'Koffeinschock', icon: 'speed', max: 5, cost: 800, grow: 1.7, d: (l) => `Nach Kaffee: +${l * 15}% Tempo für 5s`, a: (s, l) => (s.coffeeSpeed += 0.15 * l) },
   { id: 'CK', b: 'coffee', x: -3, y: 4, req: ['C3', 'C4'], name: 'Energy-Drink', icon: 'drink', max: 1, cost: 4000, grow: 1, key: true, d: () => `Seltene Energy-Drinks: +40 Ausdauer & Raserei`, a: (s) => (s.energy = true) },
   { id: 'C5', b: 'coffee', x: -4, y: 3, req: ['C3'], name: 'Koffeinsucht', icon: 'coffee', max: 5, cost: 6000, grow: 1.7, d: (l) => `Jeder Kaffee: +${l * 2}% Schaden für den Rest des Runs`, a: (s, l) => (s.coffeeAddict += 0.02 * l) },
